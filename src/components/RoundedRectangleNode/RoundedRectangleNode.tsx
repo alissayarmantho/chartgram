@@ -1,46 +1,50 @@
-import "./HexagonNode.css";
+import "./RoundedRectangleNode.css";
+import "../../IconButton.css";
 import "../../FormField.css";
 import { Handle, Position, NodeToolbar, NodeProps } from "reactflow";
+import { memo } from "react";
 import DeleteIcon from "@mui/icons-material/Delete";
-import React, { memo } from "react";
+import { TextareaAutosize } from "@mui/base/TextareaAutosize";
 import useStore, { NodeData } from "../../stores/store";
-export const HexagonNode: React.FC<NodeProps<NodeData>> = ({
+export const RoundedRectangleNode: React.FC<NodeProps<NodeData>> = ({
   data,
   id,
   isConnectable,
 }: NodeProps<NodeData>) => {
   const onChange = useStore((state) => state.updateNodeLabel);
   const onConnect = useStore((state) => state.onConnect);
-  const onAdd = useStore((state) => state.addNode);
   const onDelete = useStore((state) => state.deleteNode);
+  // const onAdd = useStore((state) => state.addNode);
   return (
-    <>
+    <div className="rounded-rectangle-node">
       <NodeToolbar>
         <button className="icon-button" onClick={() => onDelete(id)}>
           <DeleteIcon />
         </button>
       </NodeToolbar>
-      <div className="hexagon">
-        <div className="form__group">
-          <label className="form__label" htmlFor={id} style={{ zIndex: 1 }}>
-            Loops
-          </label>
-          <input
-            style={{ zIndex: 1 }}
-            id={id}
-            className="form__field nodrag"
-            value={data.label}
-            placeholder="Insert Text Here"
-            onChange={(evt: React.ChangeEvent<HTMLInputElement>) =>
-              onChange(id, evt.target.value)
-            }
-          />
-        </div>
+      <Handle
+        type="target"
+        position={Position.Top}
+        isConnectable={isConnectable}
+      />
+
+      <div className="form__group">
+        <label className="form__label" htmlFor={id}>
+          Loop
+        </label>
+        <TextareaAutosize
+          id={id}
+          className="form__field nodrag"
+          value={data.label}
+          placeholder="Insert Text Here"
+          onChange={(evt: React.ChangeEvent<HTMLTextAreaElement>) =>
+            onChange(id, evt.target.value)
+          }
+        />
       </div>
       <Handle
         type="target"
         position={Position.Top}
-        id="a"
         style={{ background: "#555" }}
         onConnect={onConnect}
         isConnectable={isConnectable}
@@ -48,21 +52,19 @@ export const HexagonNode: React.FC<NodeProps<NodeData>> = ({
       <Handle
         type="target"
         position={Position.Right}
-        id="a"
-        style={{ background: "#555", right: "-45px" }}
+        style={{ background: "#555" }}
         onConnect={onConnect}
         isConnectable={isConnectable}
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        id="a"
         style={{ background: "#555" }}
         onConnect={onConnect}
         isConnectable={isConnectable}
       />
-    </>
+    </div>
   );
 };
 
-export default memo(HexagonNode);
+export default memo(RoundedRectangleNode);

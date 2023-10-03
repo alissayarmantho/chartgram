@@ -54,3 +54,38 @@
     max-width: 250px;
   }
 }
+
+.hexagon-sidebar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  background-color: white;
+  border-top: 3px solid #79a1f5;
+  border-bottom: 3px solid #79a1f5;
+  border-radius: 10px;
+  width: 63px;
+  height: 100px;
+}
+
+/* Creating pseudo-class */
+.hexagon-sidebar:before,
+.hexagon-sidebar:after {
+  content: "";
+  border: inherit;
+  position: absolute;
+  background-color: white;
+  border-radius: inherit;
+  height: 100%;
+  width: 100%;
+}
+
+/* Align them in such a way
+        that they form a hexagon */
+.hexagon-sidebar:before {
+  transform: rotate(60deg);
+}
+.hexagon-sidebar:after {
+  transform: rotate(-60deg);
+}

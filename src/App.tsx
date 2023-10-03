@@ -18,6 +18,8 @@ import Sidebar from "./components/Sidebar/Sidebar";
 import useStore, { RFState } from "./stores/store";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { Theme } from "@emotion/react";
+import RoundedRectangleNode from "./components/RoundedRectangleNode/RoundedRectangleNode";
+import CircleNode from "./components/CircleNode/CircleNode";
 
 const rfStyle = {
   backgroundColor: "#B8CEFF",
@@ -71,6 +73,8 @@ const nodeTypes = {
   parallelogram: ParallelogramNode,
   hexagon: HexagonNode,
   rectangle: RectangleNode,
+  roundedrectangle: RoundedRectangleNode,
+  circle: CircleNode,
 };
 
 const selector = (state: RFState) => ({
@@ -141,6 +145,7 @@ function App() {
 
         addNode(type, newNode);
       }
+      console.log(nodes);
     },
     [reactFlowInstance, lastNodeId, addNode]
   );

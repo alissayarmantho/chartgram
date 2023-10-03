@@ -1,4 +1,5 @@
 import "./DiamondNode.css";
+import "../../FormField.css";
 import React, { memo } from "react";
 import { Handle, Position, NodeToolbar, NodeProps } from "reactflow";
 import useStore, { NodeData } from "../../stores/store";
