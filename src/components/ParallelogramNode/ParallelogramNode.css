@@ -1,0 +1,14 @@
+.parallelogram {
+  transform: skew(-20deg);
+  border: 3px solid #79a1f5;
+  margin: 10px 20px;
+  padding: 5px 25px;
+  border-radius: 5px;
+  background: white;
+}
+.unskew-parallelogram {
+  transform: skew(20deg);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+}

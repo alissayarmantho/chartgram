@@ -1,0 +1,39 @@
+.form__group {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+}
+
+.form__field {
+  text-align: center;
+  font-family: inherit;
+  border: 0;
+  outline: 0;
+  font-size: 20px;
+  padding: 7px;
+  margin-top: 5px;
+  background: transparent;
+  border-bottom: 2px solid #e8e8e8;
+  border-width: 3px;
+}
+
+.form__label {
+  font-size: 14px !important;
+  color: #9b9b9b;
+}
+
+.form__field:focus {
+  border-bottom: 2px solid #d2e0ff;
+  border-width: 3px;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.form__field::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.form__field {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
