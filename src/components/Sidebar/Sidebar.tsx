@@ -78,7 +78,7 @@ const Sidebar = ({ nodes, setNodes }: any) => {
       >
         <div
           className="node diamond"
-          style={{ width: "100px", height: "100px", margin: "30px" }}
+          style={{ width: "120px", height: "120px", margin: "30px" }}
         >
           <div className="unskew-diamond">
             <div
@@ -91,6 +91,31 @@ const Sidebar = ({ nodes, setNodes }: any) => {
               }}
             >
               <div className="form__field">If-Else</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        onDragStart={(event: React.DragEvent<HTMLDivElement>) =>
+          onDragStart(event, "diamond_end")
+        }
+        draggable
+      >
+        <div
+          className="node diamond"
+          style={{ width: "120px", height: "120px", margin: "30px" }}
+        >
+          <div className="unskew-diamond">
+            <div
+              className="form__group"
+              style={{
+                margin: "0px",
+                padding: "0px",
+                color: "black",
+                marginTop: "0px",
+              }}
+            >
+              <div className="form__field">If-Else End</div>
             </div>
           </div>
         </div>

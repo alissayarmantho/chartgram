@@ -20,6 +20,7 @@ import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { Theme } from "@emotion/react";
 import RoundedRectangleNode from "./components/RoundedRectangleNode/RoundedRectangleNode";
 import CircleNode from "./components/CircleNode/CircleNode";
+import DiamondEndNode from "./components/DiamondEndNode/DiamondEndNode";
 
 const rfStyle = {
   backgroundColor: "#B8CEFF",
@@ -27,49 +28,22 @@ const rfStyle = {
 
 const initialNodes: Node[] = [
   {
-    id: "node-1",
-    type: "rectangle",
-    position: { x: 0, y: 0 },
-    data: { label: 123 },
-  },
-  {
-    id: "1",
-    type: "rectangle",
-    data: { label: "Hello" },
+    id: "main",
+    type: "circle",
     position: { x: 200, y: 100 },
+    data: { label: "main" },
   },
   {
-    id: "2",
-    type: "rectangle",
-    data: { label: "World" },
+    id: "end",
+    type: "circle",
+    data: { label: "end" },
     position: { x: 200, y: 200 },
-  },
-  {
-    id: "3",
-    type: "diamond", // custom type
-    data: { label: "Diamond" },
-    position: { x: 200, y: 300 },
-  },
-  {
-    id: "4",
-    type: "parallelogram", // custom type
-    data: {
-      label: "Parallelogram",
-    },
-    position: { x: 200, y: 600 },
-  },
-  {
-    id: "5",
-    type: "hexagon", // custom type
-    data: {
-      label: "Hexagon",
-    },
-    position: { x: 200, y: 700 },
   },
 ];
 
 const nodeTypes = {
   diamond: DiamondNode,
+  diamond_end: DiamondEndNode,
   parallelogram: ParallelogramNode,
   hexagon: HexagonNode,
   rectangle: RectangleNode,
@@ -145,7 +119,6 @@ function App() {
 
         addNode(type, newNode);
       }
-      console.log(nodes);
     },
     [reactFlowInstance, lastNodeId, addNode]
   );

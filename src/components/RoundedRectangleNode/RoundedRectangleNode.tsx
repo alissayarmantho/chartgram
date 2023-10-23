@@ -1,4 +1,5 @@
 import "./RoundedRectangleNode.css";
+import "../../Handle.css";
 import "../../IconButton.css";
 import "../../FormField.css";
 import { Handle, Position, NodeToolbar, NodeProps } from "reactflow";
@@ -22,12 +23,6 @@ export const RoundedRectangleNode: React.FC<NodeProps<NodeData>> = ({
           <DeleteIcon />
         </button>
       </NodeToolbar>
-      <Handle
-        type="target"
-        position={Position.Top}
-        isConnectable={isConnectable}
-      />
-
       <div className="form__group">
         <label className="form__label" htmlFor={id}>
           Loop
@@ -45,21 +40,29 @@ export const RoundedRectangleNode: React.FC<NodeProps<NodeData>> = ({
       <Handle
         type="target"
         position={Position.Top}
-        style={{ background: "#555" }}
         onConnect={onConnect}
         isConnectable={isConnectable}
       />
       <Handle
         type="target"
         position={Position.Right}
-        style={{ background: "#555" }}
+        id="loop-end"
         onConnect={onConnect}
         isConnectable={isConnectable}
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{ background: "#555" }}
+        id="continue"
+        style={{ left: 70 }}
+        onConnect={onConnect}
+        isConnectable={isConnectable}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="loop-body"
+        style={{ left: 220 }}
         onConnect={onConnect}
         isConnectable={isConnectable}
       />

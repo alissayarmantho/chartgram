@@ -12,6 +12,7 @@ import {
   OnConnect,
   applyNodeChanges,
   applyEdgeChanges,
+  MarkerType,
 } from "reactflow";
 
 export type NodeData = {
@@ -49,8 +50,26 @@ const useStore = createWithEqualityFn<RFState>(
       });
     },
     onConnect: (connection: Connection) => {
+      const { source, target } = connection;
+
+      // Check if source and target are the same. If they are, don't add the edge.
+      if (source === target) {
+        console.warn("A node cannot connect to itself!");
+        return;
+      }
       set({
-        edges: addEdge(connection, get().edges),
+        edges: addEdge(
+          {
+            ...connection,
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              width: 40,
+              height: 40,
+            },
+            type: "smoothstep",
+          },
+          get().edges
+        ),
       });
     },
     updateNodeLabel: (nodeId: string, label: string) => {
