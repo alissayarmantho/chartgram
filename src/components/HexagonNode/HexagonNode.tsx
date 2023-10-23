@@ -17,7 +17,11 @@ export const HexagonNode: React.FC<NodeProps<NodeData>> = ({
   return (
     <>
       <NodeToolbar>
-        <button className="icon-button" onClick={() => onDelete(id)}>
+        <button
+          className="icon-button"
+          style={{ marginBottom: 13 }}
+          onClick={() => onDelete(id)}
+        >
           <DeleteIcon />
         </button>
       </NodeToolbar>
@@ -42,7 +46,6 @@ export const HexagonNode: React.FC<NodeProps<NodeData>> = ({
         type="target"
         position={Position.Top}
         id={id + "-prev"}
-        style={{ background: "#555" }}
         onConnect={onConnect}
         isValidConnection={isValidConnection}
         isConnectable={isConnectable}
@@ -51,7 +54,7 @@ export const HexagonNode: React.FC<NodeProps<NodeData>> = ({
         type="target"
         position={Position.Right}
         id={id + "-loop"}
-        style={{ background: "#555", right: "-45px" }}
+        style={{ right: "-45px" }}
         onConnect={onConnect}
         isValidConnection={isValidConnection}
         isConnectable={isConnectable}
@@ -60,7 +63,6 @@ export const HexagonNode: React.FC<NodeProps<NodeData>> = ({
         type="source"
         position={Position.Bottom}
         id={id + "-body"}
-        style={{ background: "#555" }}
         onConnect={onConnect}
         isValidConnection={isValidConnection}
         isConnectable={isConnectable}
