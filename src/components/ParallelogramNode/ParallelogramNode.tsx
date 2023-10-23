@@ -63,7 +63,7 @@ export const ParallelogramNode: React.FC<NodeProps<NodeData>> = ({
         type="target"
         position={Position.Top}
         id="a"
-        style={{ background: "#555" }}
+        style={{ top: 3 }}
         onConnect={onConnect}
         isConnectable={isConnectable}
       />
@@ -71,7 +71,7 @@ export const ParallelogramNode: React.FC<NodeProps<NodeData>> = ({
         type="source"
         position={Position.Bottom}
         id="a"
-        style={{ background: "#555" }}
+        style={{ bottom: 3 }}
         onConnect={onConnect}
         isConnectable={isConnectable}
       />
