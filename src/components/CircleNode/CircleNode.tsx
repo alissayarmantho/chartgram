@@ -14,6 +14,7 @@ export const CircleNode: React.FC<NodeProps<NodeData>> = ({
   const onChange = useStore((state) => state.updateNodeLabel);
   const onConnect = useStore((state) => state.onConnect);
   const onDelete = useStore((state) => state.deleteNode);
+  const isValidConnection = useStore((state) => state.isValidConnection);
   // const onAdd = useStore((state) => state.addNode);
   return (
     <div className="circle-node">
@@ -47,15 +48,17 @@ export const CircleNode: React.FC<NodeProps<NodeData>> = ({
       <Handle
         type="target"
         position={Position.Top}
-        style={{ background: "#555" }}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
+        id={id + "-prev"}
         isConnectable={isConnectable}
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{ background: "#555" }}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
+        id={id + "-next"}
         isConnectable={isConnectable}
       />
     </div>

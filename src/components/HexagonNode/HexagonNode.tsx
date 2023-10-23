@@ -11,8 +11,9 @@ export const HexagonNode: React.FC<NodeProps<NodeData>> = ({
 }: NodeProps<NodeData>) => {
   const onChange = useStore((state) => state.updateNodeLabel);
   const onConnect = useStore((state) => state.onConnect);
-  const onAdd = useStore((state) => state.addNode);
+  // const onAdd = useStore((state) => state.addNode);
   const onDelete = useStore((state) => state.deleteNode);
+  const isValidConnection = useStore((state) => state.isValidConnection);
   return (
     <>
       <NodeToolbar>
@@ -40,25 +41,28 @@ export const HexagonNode: React.FC<NodeProps<NodeData>> = ({
       <Handle
         type="target"
         position={Position.Top}
-        id="a"
+        id={id + "-prev"}
         style={{ background: "#555" }}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
         isConnectable={isConnectable}
       />
       <Handle
         type="target"
         position={Position.Right}
-        id="a"
+        id={id + "-loop"}
         style={{ background: "#555", right: "-45px" }}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
         isConnectable={isConnectable}
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        id="a"
+        id={id + "-body"}
         style={{ background: "#555" }}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
         isConnectable={isConnectable}
       />
     </>

@@ -14,6 +14,7 @@ export const RectangleNode: React.FC<NodeProps<NodeData>> = ({
   const onChange = useStore((state) => state.updateNodeLabel);
   const onConnect = useStore((state) => state.onConnect);
   const onDelete = useStore((state) => state.deleteNode);
+  const isValidConnection = useStore((state) => state.isValidConnection);
   // const onAdd = useStore((state) => state.addNode);
   return (
     <div className="text-updater-node">
@@ -44,15 +45,17 @@ export const RectangleNode: React.FC<NodeProps<NodeData>> = ({
       </div>
       <Handle
         type="target"
+        id={id + "-prev"}
         position={Position.Top}
-        style={{ background: "#555" }}
+        isValidConnection={isValidConnection}
         onConnect={onConnect}
         isConnectable={isConnectable}
       />
       <Handle
         type="source"
+        id={id + "-next"}
         position={Position.Bottom}
-        style={{ background: "#555" }}
+        isValidConnection={isValidConnection}
         onConnect={onConnect}
         isConnectable={isConnectable}
       />

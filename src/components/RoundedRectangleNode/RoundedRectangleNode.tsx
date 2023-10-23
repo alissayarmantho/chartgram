@@ -15,6 +15,7 @@ export const RoundedRectangleNode: React.FC<NodeProps<NodeData>> = ({
   const onChange = useStore((state) => state.updateNodeLabel);
   const onConnect = useStore((state) => state.onConnect);
   const onDelete = useStore((state) => state.deleteNode);
+  const isValidConnection = useStore((state) => state.isValidConnection);
   // const onAdd = useStore((state) => state.addNode);
   return (
     <div className="rounded-rectangle-node">
@@ -39,31 +40,36 @@ export const RoundedRectangleNode: React.FC<NodeProps<NodeData>> = ({
       </div>
       <Handle
         type="target"
+        id={id + "-prev"}
         position={Position.Top}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
         isConnectable={isConnectable}
       />
       <Handle
         type="target"
         position={Position.Right}
-        id="loop-end"
+        id={id + "-loop-end"}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
         isConnectable={isConnectable}
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        id="continue"
-        style={{ left: 70 }}
+        id={id + "-continue"}
+        style={{ left: "25%" }}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
         isConnectable={isConnectable}
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        id="loop-body"
-        style={{ left: 220 }}
+        id={id + "-loop-body"}
+        style={{ left: "75%" }}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
         isConnectable={isConnectable}
       />
     </div>
