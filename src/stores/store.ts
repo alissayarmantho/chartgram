@@ -202,6 +202,12 @@ const useStore = createWithEqualityFn<RFState>(
           }
           return node;
         }),
+        edges: get().edges.filter((edge) => {
+          return (
+            (functionType === "end" && edge.source !== nodeId) ||
+            (functionType === "start" && edge.target !== nodeId)
+          );
+        }),
       });
     },
   }),
