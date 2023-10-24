@@ -14,11 +14,14 @@ import {
   applyEdgeChanges,
   MarkerType,
   IsValidConnection,
+  updateEdge,
+  OnEdgeUpdateFunc,
 } from "reactflow";
 
 export type NodeData = {
   label: string;
   inputType?: string;
+  functionType?: string;
 };
 
 export type RFState = {
@@ -35,12 +38,14 @@ export type RFState = {
   lastNodeId: number;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
+  onEdgeUpdate: OnEdgeUpdateFunc;
   isValidConnection: IsValidConnection;
   onConnect: OnConnect;
   updateNodeLabel: (nodeId: string, label: string) => void;
   deleteNode: (nodeId: string) => void;
   addNode: (type: string, node?: Node) => void;
   changeInputType: (nodeId: string, inputType: string) => void;
+  changeFunctionType: (nodeId: string, functionType: string) => void;
 };
 
 // this is our useStore hook that we can use in our components to get parts of the store and call actions
@@ -69,7 +74,20 @@ const useStore = createWithEqualityFn<RFState>(
         toastType: type,
       }));
     },
-    nodes: [],
+    nodes: [
+      {
+        id: "main-start",
+        type: "circle_start",
+        position: { x: 500, y: 100 },
+        data: { label: "Main Start", functionType: "start" },
+      },
+      {
+        id: "maind-end",
+        type: "circle_end",
+        data: { label: "Main End", functionType: "end" },
+        position: { x: 500, y: 400 },
+      },
+    ],
     edges: [],
     lastNodeId: 0,
     onNodesChange: (changes: NodeChange[]) => {
@@ -80,6 +98,11 @@ const useStore = createWithEqualityFn<RFState>(
     onEdgesChange: (changes: EdgeChange[]) => {
       set({
         edges: applyEdgeChanges(changes, get().edges),
+      });
+    },
+    onEdgeUpdate: (oldEdge: Edge, connection: Connection) => {
+      set({
+        edges: updateEdge(oldEdge, connection, get().edges),
       });
     },
     isValidConnection: (con: Connection | Edge) => {
@@ -139,9 +162,16 @@ const useStore = createWithEqualityFn<RFState>(
       });
     },
     addNode: (type: string, node?: Node) => {
+      let newData: NodeData = { label: "" };
+      if (type === "parallelogram") {
+        newData = { ...newData, inputType: "input" };
+      }
+      if (type === "circle") {
+        newData = { ...newData, functionType: "start" };
+      }
       const newNode: Node = node ?? {
         id: get().lastNodeId.toString(),
-        data: { label: "" },
+        data: newData,
         type: type,
         position: {
           x: 200,
@@ -160,6 +190,16 @@ const useStore = createWithEqualityFn<RFState>(
             node.data = { ...node.data, inputType };
           }
 
+          return node;
+        }),
+      });
+    },
+    changeFunctionType: (nodeId: string, functionType: string) => {
+      set({
+        nodes: get().nodes.map((node) => {
+          if (node.id === nodeId && node.type === "circle") {
+            node.data = { ...node.data, functionType };
+          }
           return node;
         }),
       });

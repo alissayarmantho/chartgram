@@ -24,25 +24,12 @@ import DiamondEndNode from "./components/DiamondEndNode/DiamondEndNode";
 import Snackbar from "@mui/material/Snackbar";
 import MuiAlert, { AlertProps } from "@mui/material/Alert";
 import React from "react";
+import CircleStartNode from "./components/CircleStartNode/CircleStartNode";
+import CircleEndNode from "./components/CircleEndNode/CircleEndNode";
 
 const rfStyle = {
   backgroundColor: "#B8CEFF",
 };
-
-const initialNodes: Node[] = [
-  {
-    id: "main",
-    type: "circle",
-    position: { x: 200, y: 100 },
-    data: { label: "main" },
-  },
-  {
-    id: "end",
-    type: "circle",
-    data: { label: "end" },
-    position: { x: 200, y: 200 },
-  },
-];
 
 const nodeTypes = {
   diamond: DiamondNode,
@@ -52,6 +39,8 @@ const nodeTypes = {
   rectangle: RectangleNode,
   roundedrectangle: RoundedRectangleNode,
   circle: CircleNode,
+  circle_start: CircleStartNode,
+  circle_end: CircleEndNode,
 };
 
 const selector = (state: RFState) => ({
@@ -65,6 +54,7 @@ const selector = (state: RFState) => ({
   lastNodeId: state.lastNodeId,
   onNodesChange: state.onNodesChange,
   onEdgesChange: state.onEdgesChange,
+  onEdgeUpdate: state.onEdgeUpdate,
   onConnect: state.onConnect,
   addNode: state.addNode,
 });
@@ -92,13 +82,13 @@ function App() {
     toastOpen,
     toastMessage,
     toastType,
-    onToastOpen,
     onToastClose,
     nodes,
     edges,
     lastNodeId,
     onNodesChange,
     onEdgesChange,
+    onEdgeUpdate,
     onConnect,
     addNode,
   } = useStore(selector);
@@ -167,6 +157,7 @@ function App() {
               edges={edges}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
+              onEdgeUpdate={onEdgeUpdate}
               onConnect={onConnect}
               nodeTypes={nodeTypes}
               onInit={setReactFlowInstance}
