@@ -11,6 +11,7 @@ const DiamondEndNode: React.FC<NodeProps<NodeData>> = ({
 }: NodeProps<NodeData>) => {
   const onDelete = useStore((state) => state.deleteNode);
   const onConnect = useStore((state) => state.onConnect);
+  const isValidConnection = useStore((state) => state.isValidConnection);
   // const onAdd = useStore((state) => state.addNode);
 
   return (
@@ -35,23 +36,28 @@ const DiamondEndNode: React.FC<NodeProps<NodeData>> = ({
       </div>
       <Handle
         type="source"
+        id={id + "-next"}
         position={Position.Bottom}
         style={{ bottom: 3 }}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
         isConnectable={isConnectable}
       />
       <Handle
         type="target"
+        id={id + "-else-end"}
         position={Position.Right}
         style={{ right: 3 }}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
         isConnectable={isConnectable}
       />
       <Handle
         type="target"
         position={Position.Left}
-        id="a"
+        id={id + "-if-end"}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
         style={{ left: 3 }}
         isConnectable={isConnectable}
       />

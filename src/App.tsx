@@ -21,25 +21,15 @@ import { Theme } from "@emotion/react";
 import RoundedRectangleNode from "./components/RoundedRectangleNode/RoundedRectangleNode";
 import CircleNode from "./components/CircleNode/CircleNode";
 import DiamondEndNode from "./components/DiamondEndNode/DiamondEndNode";
+import Snackbar from "@mui/material/Snackbar";
+import MuiAlert, { AlertProps } from "@mui/material/Alert";
+import React from "react";
+import CircleStartNode from "./components/CircleStartNode/CircleStartNode";
+import CircleEndNode from "./components/CircleEndNode/CircleEndNode";
 
 const rfStyle = {
   backgroundColor: "#B8CEFF",
 };
-
-const initialNodes: Node[] = [
-  {
-    id: "main",
-    type: "circle",
-    position: { x: 200, y: 100 },
-    data: { label: "main" },
-  },
-  {
-    id: "end",
-    type: "circle",
-    data: { label: "end" },
-    position: { x: 200, y: 200 },
-  },
-];
 
 const nodeTypes = {
   diamond: DiamondNode,
@@ -49,14 +39,22 @@ const nodeTypes = {
   rectangle: RectangleNode,
   roundedrectangle: RoundedRectangleNode,
   circle: CircleNode,
+  circle_start: CircleStartNode,
+  circle_end: CircleEndNode,
 };
 
 const selector = (state: RFState) => ({
+  toastOpen: state.toastOpen,
+  toastMessage: state.toastMessage,
+  toastType: state.toastType,
+  onToastOpen: state.onToastOpen,
+  onToastClose: state.onToastClose,
   nodes: state.nodes,
   edges: state.edges,
   lastNodeId: state.lastNodeId,
   onNodesChange: state.onNodesChange,
   onEdgesChange: state.onEdgesChange,
+  onEdgeUpdate: state.onEdgeUpdate,
   onConnect: state.onConnect,
   addNode: state.addNode,
 });
@@ -68,17 +66,29 @@ const theme: Theme = createTheme({
   },
 });
 
+const Alert = React.forwardRef<HTMLDivElement, AlertProps>(function Alert(
+  props,
+  ref
+) {
+  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
+});
+
 function App() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance>(
     null as any
   );
   const {
+    toastOpen,
+    toastMessage,
+    toastType,
+    onToastClose,
     nodes,
     edges,
     lastNodeId,
     onNodesChange,
     onEdgesChange,
+    onEdgeUpdate,
     onConnect,
     addNode,
   } = useStore(selector);
@@ -126,6 +136,20 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <div className="dndflow">
+        <Snackbar
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          open={toastOpen}
+          autoHideDuration={3000}
+          onClose={onToastClose}
+        >
+          <Alert
+            // onClose={onToastClose}
+            severity={toastType}
+            sx={{ width: "100%" }}
+          >
+            {toastMessage}
+          </Alert>
+        </Snackbar>
         <ReactFlowProvider>
           <div className="reactflow-wrapper" ref={reactFlowWrapper}>
             <ReactFlow
@@ -133,6 +157,7 @@ function App() {
               edges={edges}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
+              onEdgeUpdate={onEdgeUpdate}
               onConnect={onConnect}
               nodeTypes={nodeTypes}
               onInit={setReactFlowInstance}

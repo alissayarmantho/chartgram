@@ -16,6 +16,7 @@ export const ParallelogramNode: React.FC<NodeProps<NodeData>> = ({
   const onConnect = useStore((state) => state.onConnect);
   const onDelete = useStore((state) => state.deleteNode);
   const onChangeInputType = useStore((state) => state.changeInputType);
+  const isValidConnection = useStore((state) => state.isValidConnection);
   return (
     <>
       <NodeToolbar>
@@ -62,17 +63,19 @@ export const ParallelogramNode: React.FC<NodeProps<NodeData>> = ({
       <Handle
         type="target"
         position={Position.Top}
-        id="a"
+        id={id + "-prev"}
         style={{ top: 3 }}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
         isConnectable={isConnectable}
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        id="a"
+        id={id + "-next"}
         style={{ bottom: 3 }}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
         isConnectable={isConnectable}
       />
     </>

@@ -1,28 +1,21 @@
-import "./RectangleNode.css";
+import "./CircleEndNode.css";
 import "../../IconButton.css";
 import "../../FormField.css";
-import { Handle, Position, NodeToolbar, NodeProps } from "reactflow";
+import { Handle, Position, NodeProps } from "reactflow";
 import { memo } from "react";
-import DeleteIcon from "@mui/icons-material/Delete";
 import { TextareaAutosize } from "@mui/base/TextareaAutosize";
 import useStore, { NodeData } from "../../stores/store";
-export const RectangleNode: React.FC<NodeProps<NodeData>> = ({
+
+export const CircleEndNode: React.FC<NodeProps<NodeData>> = ({
   data,
   id,
   isConnectable,
 }: NodeProps<NodeData>) => {
-  const onChange = useStore((state) => state.updateNodeLabel);
   const onConnect = useStore((state) => state.onConnect);
-  const onDelete = useStore((state) => state.deleteNode);
   const isValidConnection = useStore((state) => state.isValidConnection);
   // const onAdd = useStore((state) => state.addNode);
   return (
-    <div className="text-updater-node">
-      <NodeToolbar>
-        <button className="icon-button" onClick={() => onDelete(id)}>
-          <DeleteIcon />
-        </button>
-      </NodeToolbar>
+    <div className="circle-end-node">
       <Handle
         type="target"
         position={Position.Top}
@@ -31,36 +24,28 @@ export const RectangleNode: React.FC<NodeProps<NodeData>> = ({
 
       <div className="form__group">
         <label className="form__label" htmlFor={id}>
-          Statement
+          Function
         </label>
         <TextareaAutosize
           id={id}
+          maxRows={2}
+          style={{ width: "170px", resize: "none" }}
           className="form__field nodrag"
           value={data.label}
           placeholder="Insert Text Here"
-          onChange={(evt: React.ChangeEvent<HTMLTextAreaElement>) =>
-            onChange(id, evt.target.value)
-          }
+          disabled
         />
       </div>
       <Handle
         type="target"
-        id={id + "-prev"}
         position={Position.Top}
-        isValidConnection={isValidConnection}
         onConnect={onConnect}
-        isConnectable={isConnectable}
-      />
-      <Handle
-        type="source"
-        id={id + "-next"}
-        position={Position.Bottom}
         isValidConnection={isValidConnection}
-        onConnect={onConnect}
+        id={id + "-prev"}
         isConnectable={isConnectable}
       />
     </div>
   );
 };
 
-export default memo(RectangleNode);
+export default memo(CircleEndNode);

@@ -22,6 +22,8 @@ const Sidebar = ({ nodes, setNodes }: any) => {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
+        height: "100%",
+        overflowY: "scroll",
       }}
     >
       <div className="description">

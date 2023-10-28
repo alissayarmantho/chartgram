@@ -11,12 +11,17 @@ export const HexagonNode: React.FC<NodeProps<NodeData>> = ({
 }: NodeProps<NodeData>) => {
   const onChange = useStore((state) => state.updateNodeLabel);
   const onConnect = useStore((state) => state.onConnect);
-  const onAdd = useStore((state) => state.addNode);
+  // const onAdd = useStore((state) => state.addNode);
   const onDelete = useStore((state) => state.deleteNode);
+  const isValidConnection = useStore((state) => state.isValidConnection);
   return (
     <>
       <NodeToolbar>
-        <button className="icon-button" onClick={() => onDelete(id)}>
+        <button
+          className="icon-button"
+          style={{ marginBottom: 13 }}
+          onClick={() => onDelete(id)}
+        >
           <DeleteIcon />
         </button>
       </NodeToolbar>
@@ -40,25 +45,26 @@ export const HexagonNode: React.FC<NodeProps<NodeData>> = ({
       <Handle
         type="target"
         position={Position.Top}
-        id="a"
-        style={{ background: "#555" }}
+        id={id + "-prev"}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
         isConnectable={isConnectable}
       />
       <Handle
         type="target"
         position={Position.Right}
-        id="a"
-        style={{ background: "#555", right: "-45px" }}
+        id={id + "-loop"}
+        style={{ right: "-45px" }}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
         isConnectable={isConnectable}
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        id="a"
-        style={{ background: "#555" }}
+        id={id + "-body"}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
         isConnectable={isConnectable}
       />
     </>

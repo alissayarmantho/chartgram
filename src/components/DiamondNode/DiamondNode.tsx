@@ -13,6 +13,7 @@ const DiamondNode: React.FC<NodeProps<NodeData>> = ({
   const onChange = useStore((state) => state.updateNodeLabel);
   const onDelete = useStore((state) => state.deleteNode);
   const onConnect = useStore((state) => state.onConnect);
+  const isValidConnection = useStore((state) => state.isValidConnection);
   // const onAdd = useStore((state) => state.addNode);
 
   return (
@@ -30,7 +31,7 @@ const DiamondNode: React.FC<NodeProps<NodeData>> = ({
             </label>
             <TextareaAutosize
               id={id}
-              style={{ width: "160px" }}
+              style={{ width: "160px", resize: "none" }}
               maxRows={2}
               className="form__field nodrag"
               value={data.label}
@@ -47,6 +48,8 @@ const DiamondNode: React.FC<NodeProps<NodeData>> = ({
         position={Position.Top}
         style={{ top: 3 }}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
+        id={id + "-prev"}
         isConnectable={isConnectable}
       />
       <Handle
@@ -54,13 +57,16 @@ const DiamondNode: React.FC<NodeProps<NodeData>> = ({
         position={Position.Right}
         style={{ right: 3 }}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
+        id={id + "-else"}
         isConnectable={isConnectable}
       />
       <Handle
         type="source"
         position={Position.Left}
-        id="a"
+        id={id + "-if"}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
         style={{ left: 3 }}
         isConnectable={isConnectable}
       />
