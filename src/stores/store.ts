@@ -46,7 +46,115 @@ export type RFState = {
   addNode: (type: string, node?: Node) => void;
   changeInputType: (nodeId: string, inputType: string) => void;
   changeFunctionType: (nodeId: string, functionType: string) => void;
+  validateFlow: () => boolean;
 };
+
+function bfs(
+  nodes: Node[],
+  edges: Edge[],
+  startNodeId: string,
+  targetType: string | null,
+  targetHandle: string
+) {
+  let queue = [startNodeId];
+  let visited = new Set();
+  while (queue.length > 0) {
+    let currentNodeId = queue.shift();
+    if (visited.has(currentNodeId)) continue;
+    visited.add(currentNodeId);
+
+    // Get all edges going out from the current node
+    let outgoingEdges = edges.filter((edge) => edge.source === currentNodeId);
+    for (let edge of outgoingEdges) {
+      // If we are looking for a specific handle, check the target handle
+      if (targetHandle && edge.targetHandle !== targetHandle) continue;
+
+      // If we are looking for a specific type, check the target node type
+      let targetNode = nodes.find((node) => node.id === edge.target);
+      if (targetType && targetNode?.type !== targetType) continue;
+
+      queue.push(edge.target);
+    }
+  }
+  return Array.from(visited); // Contains all nodes reachable from the start node
+}
+
+function validateLoopNode(nodes: Node[], edges: Edge[], loopNodeId: string) {
+  // Get the loop node
+  // const loopNode = nodes.find((n) => n.id === loopNodeId);
+
+  // Perform a BFS from the loop body handle
+  const bodyReachable = bfs(
+    nodes,
+    edges,
+    loopNodeId,
+    "roundedrectangle",
+    `${loopNodeId}-loop-end`
+  );
+
+  // Check if the loop-end handle is reachable from the loop body
+  const loopEndReachable = bodyReachable.includes(loopNodeId);
+
+  // Perform a BFS from the continue handle to find nodes outside the loop
+  const continueReachable = bfs(
+    nodes,
+    edges,
+    loopNodeId,
+    null,
+    `${loopNodeId}-continue`
+  );
+
+  // The continue handle should not be able to reach back to the loop node
+  const continueLeadsOut = !continueReachable.includes(loopNodeId);
+
+  return loopEndReachable && continueLeadsOut;
+}
+
+function validateIfElseNode(
+  nodes: Node[],
+  edges: Edge[],
+  ifElseNodeId: string
+) {
+  // Get the if-else node
+  // const ifElseNode = nodes.find((n) => n.id === ifElseNodeId);
+
+  // Perform a BFS from the if handle
+  const ifReachable = bfs(
+    nodes,
+    edges,
+    ifElseNodeId,
+    null,
+    `${ifElseNodeId}-if`
+  );
+
+  // Perform a BFS from the else handle
+  const elseReachable = bfs(
+    nodes,
+    edges,
+    ifElseNodeId,
+    null,
+    `${ifElseNodeId}-else`
+  );
+
+  // Find the diamond end node that is reachable from both if and else handles
+  const diamondEndNode = nodes.find(
+    (n) =>
+      n.type === "diamond_end" &&
+      ifReachable.includes(n.id) &&
+      elseReachable.includes(n.id)
+  );
+
+  // Perform BFS from the diamond end node's next handle to ensure continuation
+  const endNodeContinuationReachable =
+    diamondEndNode &&
+    bfs(nodes, edges, diamondEndNode.id, null, `${diamondEndNode.id}-next`);
+
+  return (
+    !!diamondEndNode &&
+    endNodeContinuationReachable &&
+    endNodeContinuationReachable.length > 0
+  );
+}
 
 // this is our useStore hook that we can use in our components to get parts of the store and call actions
 const useStore = createWithEqualityFn<RFState>(
@@ -74,6 +182,27 @@ const useStore = createWithEqualityFn<RFState>(
         toastType: type,
       }));
     },
+    validateFlow: () => {
+      // Get if-else nodes
+      const ifElseNodes = get().nodes.filter((node) => node.type === "diamond");
+      for (let node of ifElseNodes) {
+        if (!validateIfElseNode(get().nodes, get().edges, node.id)) {
+          return false;
+        }
+      }
+
+      // Get loop nodes
+      const loopNodes = get().nodes.filter(
+        (node) => node.type === "roundedrectangle"
+      );
+      for (let node of loopNodes) {
+        if (!validateLoopNode(get().nodes, get().edges, node.id)) {
+          return false;
+        }
+      }
+
+      return true;
+    },
     nodes: [
       {
         id: "main-start",
@@ -82,7 +211,7 @@ const useStore = createWithEqualityFn<RFState>(
         data: { label: "Main Start", functionType: "start" },
       },
       {
-        id: "maind-end",
+        id: "main-end",
         type: "circle_end",
         data: { label: "Main End", functionType: "end" },
         position: { x: 500, y: 400 },
@@ -107,6 +236,7 @@ const useStore = createWithEqualityFn<RFState>(
     },
     isValidConnection: (con: Connection | Edge) => {
       const { source, target, sourceHandle, targetHandle } = con;
+      if (!targetHandle || !sourceHandle || !source || !target) return false;
 
       // Check if source and target are the same. If they are, don't add the edge.
       if (source === target) {

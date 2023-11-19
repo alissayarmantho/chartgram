@@ -57,6 +57,7 @@ const selector = (state: RFState) => ({
   onEdgeUpdate: state.onEdgeUpdate,
   onConnect: state.onConnect,
   addNode: state.addNode,
+  validateFlow: state.validateFlow,
 });
 
 const theme: Theme = createTheme({
@@ -75,6 +76,7 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(function Alert(
 
 function App() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const [openErrorBar, setOpenErrorBar] = useState(false);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance>(
     null as any
   );
@@ -91,6 +93,7 @@ function App() {
     onEdgeUpdate,
     onConnect,
     addNode,
+    validateFlow,
   } = useStore(selector);
 
   const onDragOver = useCallback((event: any) => {
@@ -150,6 +153,33 @@ function App() {
             {toastMessage}
           </Alert>
         </Snackbar>
+        {/* <button
+          style={{ position: "fixed", zIndex: 5, top: 10, left: 10 }}
+          onClick={() => {
+            let validFlow = validateFlow();
+            setOpenErrorBar(!validFlow);
+          }}
+        >
+          Click ME!
+        </button>
+        <Snackbar
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          open={openErrorBar}
+          autoHideDuration={3000}
+          onClose={() => {
+            setOpenErrorBar(false);
+          }}
+        >
+          <Alert
+            onClose={() => {
+              setOpenErrorBar(false);
+            }}
+            severity="error"
+            sx={{ width: "100%" }}
+          >
+            There is some error when validating the flow
+          </Alert>
+        </Snackbar> */}
         <ReactFlowProvider>
           <div className="reactflow-wrapper" ref={reactFlowWrapper}>
             <ReactFlow
