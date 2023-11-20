@@ -289,6 +289,9 @@ const useStore = createWithEqualityFn<RFState>(
     deleteNode: (nodeId: string) => {
       set({
         nodes: get().nodes.filter((node) => node.id !== nodeId),
+        edges: get().edges.filter((edge) => {
+          return edge.source !== nodeId && edge.target !== nodeId;
+        }),
       });
     },
     addNode: (type: string, node?: Node) => {
