@@ -24,6 +24,16 @@ export type NodeData = {
   functionType?: string;
 };
 
+export type ValidateResult = {
+  isValid: boolean;
+  validationMessage: string | null;
+};
+
+export type NodeIDHandle = {
+  nodeId: string;
+  handle: string;
+};
+
 export type RFState = {
   toastOpen: boolean;
   toastMessage: string;
@@ -46,18 +56,96 @@ export type RFState = {
   addNode: (type: string, node?: Node) => void;
   changeInputType: (nodeId: string, inputType: string) => void;
   changeFunctionType: (nodeId: string, functionType: string) => void;
-  validateFlow: () => boolean;
+  validateFlow: () => ValidateResult;
 };
+function findConnectedNodeToHandle(
+  edges: Edge[],
+  sourceNodeId: string,
+  handle: string
+) {
+  // Find the edge that connects from the specified handle
+  const edge = edges.find(
+    (edge) => edge.source === sourceNodeId && edge.sourceHandle === handle
+  );
+  // Return the target node ID of this edge
+  return edge ? edge.target : null;
+}
 
-function bfs(
+function bfsIfElse(
   nodes: Node[],
   edges: Edge[],
   startNodeId: string,
-  targetType: string | null,
-  targetHandle: string
+  path: string
 ) {
+  let queue = [
+    {
+      nodeId: startNodeId,
+      handle: `${startNodeId}-${path}`,
+      depth: 0,
+    },
+  ];
+
+  let visited = new Set<NodeIDHandle>();
+
+  let endNode: string = "";
+
+  while (queue.length > 0) {
+    let { nodeId, handle, depth } = queue.shift() ?? {};
+    if (!nodeId || !handle || depth === undefined || depth === null) break;
+
+    if (visited.has({ nodeId: nodeId, handle: handle })) continue;
+
+    // This might make a node be visited twice if they got multiple source handles, but it should be fine
+    visited.add({ nodeId: nodeId, handle: handle });
+
+    // Add node and depth info
+    let currentNode = nodes.find((e) => e.id === nodeId);
+    if (currentNode && currentNode.type === "diamond_end") {
+      if (handle.endsWith(`${path}-end`) && depth === 0) {
+        endNode = nodeId;
+        break;
+      }
+    }
+
+    // Adjust depth for nested if-else nodes
+    if (
+      currentNode &&
+      currentNode.id !== startNodeId &&
+      (currentNode.type === "diamond" || currentNode.type === "diamond_end")
+    ) {
+      if (handle.endsWith("-end")) {
+        depth--;
+      } else {
+        depth++;
+      }
+    }
+
+    // Get all edges going out from the current node
+    let outgoingEdges;
+    if (handle === `${startNodeId}-${path}`) {
+      // Only for the first node, consider the specific handle
+      outgoingEdges = edges.filter(
+        (edge) => edge.source === nodeId && edge.sourceHandle === handle
+      );
+    } else {
+      // For subsequent nodes, consider all outgoing edges
+      outgoingEdges = edges.filter((edge) => edge.source === nodeId);
+    }
+    for (let edge of outgoingEdges) {
+      queue.push({
+        nodeId: edge.target,
+        handle: edge.targetHandle ?? "",
+        depth,
+      });
+    }
+  }
+  return { visited: Array.from(visited), endNode: endNode };
+}
+
+function bfs(edges: Edge[], startNodeId: string) {
   let queue = [startNodeId];
   let visited = new Set();
+
   while (queue.length > 0) {
     let currentNodeId = queue.shift();
     if (visited.has(currentNodeId)) continue;
@@ -66,94 +154,200 @@ function bfs(
     // Get all edges going out from the current node
     let outgoingEdges = edges.filter((edge) => edge.source === currentNodeId);
     for (let edge of outgoingEdges) {
-      // If we are looking for a specific handle, check the target handle
-      if (targetHandle && edge.targetHandle !== targetHandle) continue;
-
-      // If we are looking for a specific type, check the target node type
-      let targetNode = nodes.find((node) => node.id === edge.target);
-      if (targetType && targetNode?.type !== targetType) continue;
-
       queue.push(edge.target);
     }
   }
-  return Array.from(visited); // Contains all nodes reachable from the start node
+  return Array.from(visited);
 }
 
-function validateLoopNode(nodes: Node[], edges: Edge[], loopNodeId: string) {
-  // Get the loop node
-  // const loopNode = nodes.find((n) => n.id === loopNodeId);
+function bfsThroughLoopBody(
+  nodes: Node[],
+  edges: Edge[],
+  loopNodeId: string,
+  loopBodyStartNodeId: string | null
+) {
+  if (!loopBodyStartNodeId) return false;
 
+  let queue = [loopBodyStartNodeId];
+  let visited = new Set();
+  let isConnectedToEnd = false;
+
+  while (queue.length > 0) {
+    let currentNodeId = queue.shift();
+    if (visited.has(currentNodeId)) continue;
+    visited.add(currentNodeId);
+
+    // Check if the current node is the loop node connected via the loop-end handle
+    if (currentNodeId === loopNodeId) {
+      const loopEndEdge = edges.find(
+        (edge) =>
+          edge.target === loopNodeId &&
+          edge.targetHandle === `${loopNodeId}-loop-end`
+      );
+      if (loopEndEdge) {
+        isConnectedToEnd = true;
+        break; // Stop BFS if we have found the loop node connected via loop-end handle
+      }
+    }
+
+    // Enqueue all nodes connected to the current node
+    let outgoingEdges = edges.filter((edge) => edge.source === currentNodeId);
+    for (let edge of outgoingEdges) {
+      if (!visited.has(edge.target)) {
+        queue.push(edge.target);
+      }
+    }
+  }
+
+  return isConnectedToEnd;
+}
+
+function validateStartConnectedToEnd(edges: Edge[]): ValidateResult {
+  const startNodeId = "main-start";
+  const endNodeId = "main-end";
+
+  // Perform a BFS from the start node
+  const reachableNodes = bfs(edges, startNodeId);
+
+  // Check if the end node is in the set of reachable nodes
+  return {
+    isValid: reachableNodes.includes(endNodeId),
+    validationMessage: "Main End is not reachable from Main Start",
+  };
+}
+
+function validateLoopNode(
+  nodes: Node[],
+  edges: Edge[],
+  loopNodeId: string
+): ValidateResult {
+  const loopBody = findConnectedNodeToHandle(
+    edges,
+    loopNodeId,
+    `${loopNodeId}-loop-body`
+  );
+  if (!loopBody) {
+    return {
+      isValid: false,
+      validationMessage:
+        "Loop does not have a body. It should at least be connected to itself if the loop is empty",
+    };
+  }
   // Perform a BFS from the loop body handle
-  const bodyReachable = bfs(
+  // Check if the loop-end handle is reachable from the loop body
+  const loopEndReachable = bfsThroughLoopBody(
     nodes,
     edges,
     loopNodeId,
-    "roundedrectangle",
-    `${loopNodeId}-loop-end`
+    loopBody
   );
 
-  // Check if the loop-end handle is reachable from the loop body
-  const loopEndReachable = bodyReachable.includes(loopNodeId);
+  if (!loopEndReachable) {
+    return {
+      isValid: false,
+      validationMessage: "Loop node is not reachable from loop body",
+    };
+  }
 
-  // Perform a BFS from the continue handle to find nodes outside the loop
-  const continueReachable = bfs(
+  const loopContinue = findConnectedNodeToHandle(
+    edges,
+    loopNodeId,
+    `${loopNodeId}-continue`
+  );
+  if (!loopContinue) {
+    return {
+      isValid: false,
+      validationMessage:
+        "Loop does not have a continuation. It should at least be connected to Main End node if it is the last node in the program",
+    };
+  }
+
+  // Perform a BFS from the loop continue handle
+  const loopNodeReachableFromContinue = bfsThroughLoopBody(
     nodes,
     edges,
     loopNodeId,
-    null,
-    `${loopNodeId}-continue`
+    loopContinue
   );
 
   // The continue handle should not be able to reach back to the loop node
-  const continueLeadsOut = !continueReachable.includes(loopNodeId);
+  if (loopNodeReachableFromContinue) {
+    return {
+      isValid: false,
+      validationMessage:
+        "Loop continuation should not be able to reach back to the loop node",
+    };
+  }
 
-  return loopEndReachable && continueLeadsOut;
+  return { isValid: true, validationMessage: "" };
 }
 
 function validateIfElseNode(
   nodes: Node[],
   edges: Edge[],
   ifElseNodeId: string
-) {
-  // Get the if-else node
-  // const ifElseNode = nodes.find((n) => n.id === ifElseNodeId);
+): ValidateResult {
+  const ifBodyReachable = bfsIfElse(nodes, edges, ifElseNodeId, "if");
+  const elseBodyReachable = bfsIfElse(nodes, edges, ifElseNodeId, "else");
+  const ifBodyNodeIds = ifBodyReachable.visited
+    .map((item) => item.nodeId)
+    .filter(
+      (item) => !(ifElseNodeId === item) && !(ifBodyReachable.endNode === item)
+    );
+  const elseBodyNodeIds = elseBodyReachable.visited
+    .map((item) => item.nodeId)
+    .filter(
+      (item) =>
+        !(ifElseNodeId === item) && !(elseBodyReachable.endNode === item)
+    );
 
-  // Perform a BFS from the if handle
-  const ifReachable = bfs(
-    nodes,
-    edges,
-    ifElseNodeId,
-    null,
-    `${ifElseNodeId}-if`
+  // Check if bodies are disjoint
+  const bodiesDisjoint = ifBodyNodeIds.every(
+    (nodeId) => !elseBodyNodeIds.includes(nodeId)
   );
 
-  // Perform a BFS from the else handle
-  const elseReachable = bfs(
-    nodes,
-    edges,
-    ifElseNodeId,
-    null,
-    `${ifElseNodeId}-else`
-  );
+  if (!ifBodyReachable.endNode) {
+    if (ifBodyNodeIds.includes(elseBodyReachable.endNode)) {
+      return {
+        isValid: false,
+        validationMessage:
+          "There may be a nested if-else node that is not connected to the right if-else-end node",
+      };
+    }
+    return {
+      isValid: false,
+      validationMessage: "If body is not connected to any If-Else-End node",
+    };
+  }
 
-  // Find the diamond end node that is reachable from both if and else handles
-  const diamondEndNode = nodes.find(
-    (n) =>
-      n.type === "diamond_end" &&
-      ifReachable.includes(n.id) &&
-      elseReachable.includes(n.id)
-  );
+  if (!elseBodyReachable.endNode) {
+    if (elseBodyNodeIds.includes(ifBodyReachable.endNode)) {
+      return {
+        isValid: false,
+        validationMessage:
+          "There may be a nested if-else node that is not connected to the right if-else-end node",
+      };
+    }
+    return {
+      isValid: false,
+      validationMessage: "Else body is not connected to any If-Else-End node",
+    };
+  }
 
-  // Perform BFS from the diamond end node's next handle to ensure continuation
-  const endNodeContinuationReachable =
-    diamondEndNode &&
-    bfs(nodes, edges, diamondEndNode.id, null, `${diamondEndNode.id}-next`);
-
-  return (
-    !!diamondEndNode &&
-    endNodeContinuationReachable &&
-    endNodeContinuationReachable.length > 0
-  );
+  if (!(ifBodyReachable.endNode === elseBodyReachable.endNode)) {
+    return {
+      isValid: false,
+      validationMessage:
+        "If body does not link to the same If-Else-End node as else body",
+    };
+  }
+  if (!bodiesDisjoint) {
+    return {
+      isValid: false,
+      validationMessage: "If body cannot be connected to else body",
+    };
+  }
+  return { isValid: true, validationMessage: "" };
 }
 
 // this is our useStore hook that we can use in our components to get parts of the store and call actions
@@ -183,11 +377,23 @@ const useStore = createWithEqualityFn<RFState>(
       }));
     },
     validateFlow: () => {
+      const endReachableValidationResult = validateStartConnectedToEnd(
+        get().edges
+      );
+      if (!endReachableValidationResult.isValid) {
+        return endReachableValidationResult;
+      }
+
       // Get if-else nodes
       const ifElseNodes = get().nodes.filter((node) => node.type === "diamond");
       for (let node of ifElseNodes) {
-        if (!validateIfElseNode(get().nodes, get().edges, node.id)) {
-          return false;
+        let validationResult = validateIfElseNode(
+          get().nodes,
+          get().edges,
+          node.id
+        );
+        if (!validationResult.isValid) {
+          return validationResult;
         }
       }
 
@@ -196,12 +402,17 @@ const useStore = createWithEqualityFn<RFState>(
         (node) => node.type === "roundedrectangle"
       );
       for (let node of loopNodes) {
-        if (!validateLoopNode(get().nodes, get().edges, node.id)) {
-          return false;
+        let validationResult = validateLoopNode(
+          get().nodes,
+          get().edges,
+          node.id
+        );
+        if (!validationResult.isValid) {
+          return validationResult;
         }
       }
 
-      return true;
+      return { isValid: true, validationMessage: null };
     },
     nodes: [
       {
@@ -240,8 +451,20 @@ const useStore = createWithEqualityFn<RFState>(
 
       // Check if source and target are the same. If they are, don't add the edge.
       if (source === target) {
-        get().onToastOpen("A node cannot connect to itself!", "error");
-        return false;
+        const isLoopNode = get().nodes.find(
+          (node) => node.id === source && node.type === "roundedrectangle"
+        );
+        if (
+          isLoopNode &&
+          sourceHandle.endsWith("loop-body") &&
+          targetHandle.endsWith("loop-end")
+        ) {
+          // Allow loop-body to loop-end connection for loop nodes
+          return true;
+        } else {
+          get().onToastOpen("A node cannot connect to itself!", "error");
+          return false;
+        }
       }
 
       // Check if the source handle or target handle is already connected

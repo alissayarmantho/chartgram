@@ -26,6 +26,7 @@ import MuiAlert, { AlertProps } from "@mui/material/Alert";
 import React from "react";
 import CircleStartNode from "./components/CircleStartNode/CircleStartNode";
 import CircleEndNode from "./components/CircleEndNode/CircleEndNode";
+import Menubar from "./components/MenuBar/Menubar";
 
 const rfStyle = {
   backgroundColor: "#B8CEFF",
@@ -76,7 +77,12 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(function Alert(
 
 function App() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const [openErrorBar, setOpenErrorBar] = useState(false);
+  const [openValidationFlowStatus, setOpenValidationFlowStatus] =
+    useState(false);
+  const [validationFlowStatusMessage, setValidationFlowStatusMessage] =
+    useState("");
+  const [validationFlowStatusSeverity, setValidationFlowStatusSeverity] =
+    useState<"success" | "error" | "info" | "warning" | undefined>("success");
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance>(
     null as any
   );
@@ -136,6 +142,21 @@ function App() {
     [reactFlowInstance, lastNodeId, addNode]
   );
 
+  const onClickValidate = () => {
+    let validFlowResult = validateFlow();
+    if (!validFlowResult.isValid) {
+      setValidationFlowStatusSeverity("error");
+      setValidationFlowStatusMessage(validFlowResult.validationMessage ?? "");
+      setOpenValidationFlowStatus(!validFlowResult.isValid);
+    } else {
+      setValidationFlowStatusSeverity("success");
+      setValidationFlowStatusMessage("Flow is valid");
+    }
+    setOpenValidationFlowStatus(true);
+  };
+
+  const [isOpen, setIsOpen] = React.useState(false);
+
   return (
     <ThemeProvider theme={theme}>
       <div className="dndflow">
@@ -153,33 +174,47 @@ function App() {
             {toastMessage}
           </Alert>
         </Snackbar>
-        {/* <button
-          style={{ position: "fixed", zIndex: 5, top: 10, left: 10 }}
-          onClick={() => {
-            let validFlow = validateFlow();
-            setOpenErrorBar(!validFlow);
-          }}
-        >
-          Click ME!
-        </button>
+        <Menubar
+          isOpen={isOpen}
+          setIsOpen={setIsOpen}
+          commandData={[
+            { title: "Validate Flow", onClick: onClickValidate },
+            {
+              title: "Create Flow",
+              onClick: () => {},
+            },
+            {
+              title: "Create Python Code",
+              onClick: () => {},
+            },
+            {
+              title: "Save Flow",
+              onClick: () => {},
+            },
+            {
+              title: "Load Flow",
+              onClick: () => {},
+            },
+          ]}
+        ></Menubar>
         <Snackbar
           anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-          open={openErrorBar}
+          open={openValidationFlowStatus}
           autoHideDuration={3000}
           onClose={() => {
-            setOpenErrorBar(false);
+            setOpenValidationFlowStatus(false);
           }}
         >
           <Alert
             onClose={() => {
-              setOpenErrorBar(false);
+              setOpenValidationFlowStatus(false);
             }}
-            severity="error"
+            severity={validationFlowStatusSeverity}
             sx={{ width: "100%" }}
           >
-            There is some error when validating the flow
+            {validationFlowStatusMessage}
           </Alert>
-        </Snackbar> */}
+        </Snackbar>
         <ReactFlowProvider>
           <div className="reactflow-wrapper" ref={reactFlowWrapper}>
             <ReactFlow

@@ -46,19 +46,19 @@ const DiamondEndNode: React.FC<NodeProps<NodeData>> = ({
       <Handle
         type="target"
         id={id + "-else-end"}
-        position={Position.Right}
-        style={{ right: 3 }}
+        position={Position.Left}
+        style={{ left: 3 }}
         onConnect={onConnect}
         isValidConnection={isValidConnection}
         isConnectable={isConnectable}
       />
       <Handle
         type="target"
-        position={Position.Left}
+        position={Position.Right}
         id={id + "-if-end"}
         onConnect={onConnect}
         isValidConnection={isValidConnection}
-        style={{ left: 3 }}
+        style={{ right: 3 }}
         isConnectable={isConnectable}
       />
     </>
