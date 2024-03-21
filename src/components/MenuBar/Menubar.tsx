@@ -51,7 +51,10 @@ const Menubar = ({ isOpen, setIsOpen, commandData }: any) => {
                         "flex items-center justify-between w-full p-5 rounded-xl bg-neutral-950"
                       }
                     >
-                      <span style={{ display: "flex", padding: 13 }}>
+                      <span
+                        className="nav-items"
+                        style={{ display: "flex", padding: 13 }}
+                      >
                         {data.title}
                       </span>
                     </div>

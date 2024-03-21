@@ -33,13 +33,15 @@
   margin-top: 5px;
 }
 
-.nav-items a {
+.nav-items span {
   color: black;
   text-decoration: none;
   padding-top: 10px;
   transition: background-color 0.3s;
 }
 
-.nav-items a:hover {
+.nav-items span:hover {
   background-color: #0056b3;
+  color: white;
+  cursor: pointer;
 }
