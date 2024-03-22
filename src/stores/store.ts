@@ -34,6 +34,11 @@ export type NodeIDHandle = {
   handle: string;
 };
 
+export type Flow = {
+  nodes: Node<NodeData>[];
+  edges: Edge[];
+};
+
 export type RFState = {
   toastOpen: boolean;
   toastMessage: string;
@@ -54,6 +59,7 @@ export type RFState = {
   updateNodeLabel: (nodeId: string, label: string) => void;
   deleteNode: (nodeId: string) => void;
   addNode: (type: string, node?: Node) => void;
+  setAllNodesAndEdges: (nodes: Node<NodeData>[], edges: Edge[]) => void;
   changeInputType: (nodeId: string, inputType: string) => void;
   changeFunctionType: (nodeId: string, functionType: string) => void;
   validateFlow: () => ValidateResult;
@@ -429,6 +435,12 @@ const useStore = createWithEqualityFn<RFState>(
       },
     ],
     edges: [],
+    setAllNodesAndEdges: (nodes: Node<NodeData>[], edges: Edge[]) => {
+      set({
+        nodes: nodes,
+        edges: edges,
+      });
+    },
     lastNodeId: 0,
     onNodesChange: (changes: NodeChange[]) => {
       set({

@@ -6,6 +6,7 @@ import ReactFlow, {
   Controls,
   ReactFlowProvider,
   ReactFlowInstance,
+  Edge,
 } from "reactflow";
 import "./Flow.css";
 import "reactflow/dist/style.css";
@@ -15,7 +16,7 @@ import ParallelogramNode from "./components/ParallelogramNode/ParallelogramNode"
 import HexagonNode from "./components/HexagonNode/HexagonNode";
 import RectangleNode from "./components/RectangleNode/RectangleNode";
 import Sidebar from "./components/Sidebar/Sidebar";
-import useStore, { RFState } from "./stores/store";
+import useStore, { Flow, RFState } from "./stores/store";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { Theme } from "@emotion/react";
 import RoundedRectangleNode from "./components/RoundedRectangleNode/RoundedRectangleNode";
@@ -52,6 +53,7 @@ const selector = (state: RFState) => ({
   onToastClose: state.onToastClose,
   nodes: state.nodes,
   edges: state.edges,
+  setAllNodesAndEdges: state.setAllNodesAndEdges,
   lastNodeId: state.lastNodeId,
   onNodesChange: state.onNodesChange,
   onEdgesChange: state.onEdgesChange,
@@ -86,6 +88,7 @@ function App() {
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance>(
     null as any
   );
+
   const {
     toastOpen,
     toastMessage,
@@ -94,6 +97,7 @@ function App() {
     nodes,
     edges,
     lastNodeId,
+    setAllNodesAndEdges,
     onNodesChange,
     onEdgesChange,
     onEdgeUpdate,
@@ -102,6 +106,103 @@ function App() {
     validateFlow,
   } = useStore(selector);
 
+  const saveFlow = () => {
+    const flow = {
+      nodes: nodes,
+      edges: edges,
+    };
+
+    const blob = new Blob([JSON.stringify(flow, null, 2)], {
+      type: "application/json",
+    });
+    const href = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = href;
+    link.download = "flow.json";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const hiddenFileInput = useRef<HTMLInputElement>(null);
+  const handleClick = () => {
+    hiddenFileInput?.current?.click();
+  };
+
+  // Function to handle file selection
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files ? event.target.files[0] : null;
+    if (!file) {
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e: ProgressEvent<FileReader>) => {
+      if (e.target) {
+        const text = e.target.result;
+        if (typeof text !== "string") {
+          setOpenValidationFlowStatus(true);
+          setValidationFlowStatusSeverity("error");
+          setValidationFlowStatusMessage("Failed to load the file");
+          return;
+        }
+        try {
+          const flow: any = JSON.parse(text);
+          if (!parseableFlow(flow)) {
+            setOpenValidationFlowStatus(true);
+            setValidationFlowStatusSeverity("error");
+            setValidationFlowStatusMessage("Invalid flow");
+            return;
+          }
+          setAllNodesAndEdges(flow.nodes, flow.edges);
+        } catch (error) {
+          setOpenValidationFlowStatus(true);
+          setValidationFlowStatusSeverity("error");
+          setValidationFlowStatusMessage("Failed to load the flow: " + error);
+        }
+      }
+    };
+    reader.readAsText(file);
+  };
+  const isValidNode = (obj: any): obj is Node => {
+    return (
+      obj &&
+      typeof obj.id === "string" &&
+      typeof obj.type === "string" &&
+      obj.data &&
+      typeof obj.data === "object" && // Ensure 'data' exists and is an object
+      typeof obj.data.label === "string" &&
+      obj.position &&
+      typeof obj.position.x === "number" &&
+      typeof obj.position.y === "number" &&
+      typeof obj.width === "number" &&
+      typeof obj.height === "number"
+    );
+  };
+  // Function to validate if an object is an Edge
+  const isValidEdge = (obj: any): obj is Edge => {
+    return (
+      obj &&
+      typeof obj.id === "string" &&
+      typeof obj.type === "string" &&
+      typeof obj.source === "string" &&
+      typeof obj.target === "string" &&
+      typeof obj.markerEnd === "object" &&
+      typeof obj.markerEnd.type === "string" &&
+      typeof obj.markerEnd.width === "number" &&
+      typeof obj.markerEnd.height === "number" &&
+      (!obj.sourceHandle || typeof obj.sourceHandle === "string") &&
+      (!obj.targetHandle || typeof obj.targetHandle === "string")
+    );
+  };
+
+  // Check if the flow can be parsed
+  const parseableFlow = (flow: any): flow is Flow => {
+    if (!flow || !Array.isArray(flow.nodes) || !Array.isArray(flow.edges)) {
+      return false;
+    }
+
+    return flow.nodes.every(isValidNode) && flow.edges.every(isValidEdge);
+  };
   const onDragOver = useCallback((event: any) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
@@ -174,6 +275,13 @@ function App() {
             {toastMessage}
           </Alert>
         </Snackbar>
+        <input
+          type="file"
+          ref={hiddenFileInput}
+          onChange={handleFileChange}
+          style={{ display: "none" }}
+          accept=".json"
+        />
         <Menubar
           isOpen={isOpen}
           setIsOpen={setIsOpen}
@@ -189,11 +297,15 @@ function App() {
             },
             {
               title: "Save Flow",
-              onClick: () => {},
+              onClick: () => {
+                saveFlow();
+              },
             },
             {
               title: "Load Flow",
-              onClick: () => {},
+              onClick: () => {
+                handleClick();
+              },
             },
           ]}
         ></Menubar>
