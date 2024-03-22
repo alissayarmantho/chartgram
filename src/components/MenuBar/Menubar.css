@@ -1,0 +1,48 @@
+.circular-menu {
+  position: absolute !important;
+  top: 20px;
+  left: 100px;
+  zindex: 10 !important;
+}
+
+.menu-button {
+  background-color: #007bff;
+  border: none;
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  padding: 10px 15px;
+  font-size: 16px;
+  transition: width 0.4s ease;
+}
+
+.menu-button.open {
+  border-radius: 5px;
+  width: 150px; /* Adjust based on desired final width */
+}
+
+.nav-items {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  padding: 10px;
+  background-color: #d2e0ff;
+  border-radius: 20px;
+  width: 200px;
+  margin-top: 5px;
+}
+
+.nav-items span {
+  color: black;
+  text-decoration: none;
+  padding-top: 10px;
+  transition: background-color 0.3s;
+}
+
+.nav-items span:hover {
+  background-color: #0056b3;
+  font-weight: bold;
+  color: white;
+  cursor: pointer;
+}

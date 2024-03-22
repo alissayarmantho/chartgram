@@ -54,8 +54,8 @@ const DiamondNode: React.FC<NodeProps<NodeData>> = ({
       />
       <Handle
         type="source"
-        position={Position.Right}
-        style={{ right: 3 }}
+        position={Position.Left}
+        style={{ left: 3 }}
         onConnect={onConnect}
         isValidConnection={isValidConnection}
         id={id + "-else"}
@@ -63,11 +63,11 @@ const DiamondNode: React.FC<NodeProps<NodeData>> = ({
       />
       <Handle
         type="source"
-        position={Position.Left}
+        position={Position.Right}
         id={id + "-if"}
         onConnect={onConnect}
         isValidConnection={isValidConnection}
-        style={{ left: 3 }}
+        style={{ right: 3 }}
         isConnectable={isConnectable}
       />
     </>
