@@ -1,0 +1,41 @@
+.run-flow {
+  position: absolute;
+  top: 100px;
+  right: 280px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  padding: 50px;
+  background-color: #d2e0ff;
+  border-radius: 20px;
+  width: 550px;
+  margin-top: 5px;
+}
+
+.output {
+  font-weight: 500;
+  border-radius: 20px;
+  padding: 20px;
+  border: 0;
+  outline: 0;
+}
+
+.input-textbox {
+  font-weight: 500;
+  font-family: inherit;
+  border: 0;
+  outline: 0;
+  font-size: 20px;
+  margin-top: 5px;
+  padding: 20px;
+  background: white;
+  border-radius: 20px;
+  border-bottom: 2px solid #79a1f5;
+  border-width: 3px;
+}
+
+.input-textbox:focus {
+  border-bottom: 2px solid #0056b3;
+  border-width: 3px;
+}
