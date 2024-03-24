@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import ReactFlow, {
   Node,
   MiniMap,
@@ -8,31 +8,48 @@ import ReactFlow, {
   ReactFlowInstance,
   Edge,
 } from "reactflow";
+import Editor from "@monaco-editor/react";
 import "./Flow.css";
 import "reactflow/dist/style.css";
-
+import Button from "@mui/material/Button";
 import DiamondNode from "./components/DiamondNode/DiamondNode";
 import ParallelogramNode from "./components/ParallelogramNode/ParallelogramNode";
 import HexagonNode from "./components/HexagonNode/HexagonNode";
 import RectangleNode from "./components/RectangleNode/RectangleNode";
 import Sidebar from "./components/Sidebar/Sidebar";
 import useStore, { Flow, RFState } from "./stores/store";
-import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { createTheme, ThemeProvider, styled } from "@mui/material/styles";
 import { Theme } from "@emotion/react";
 import RoundedRectangleNode from "./components/RoundedRectangleNode/RoundedRectangleNode";
 import CircleNode from "./components/CircleNode/CircleNode";
 import DiamondEndNode from "./components/DiamondEndNode/DiamondEndNode";
 import Snackbar from "@mui/material/Snackbar";
 import MuiAlert, { AlertProps } from "@mui/material/Alert";
-import React from "react";
 import CircleStartNode from "./components/CircleStartNode/CircleStartNode";
 import CircleEndNode from "./components/CircleEndNode/CircleEndNode";
 import Menubar from "./components/MenuBar/Menubar";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import IconButton from "@mui/material/IconButton";
+import CloseIcon from "@mui/icons-material/Close";
+import { PlayArrow, Update } from "@mui/icons-material";
+import { Tooltip } from "@mui/material";
+import RunFlow from "./components/RunFlow/RunFlow";
 
 const rfStyle = {
   backgroundColor: "#B8CEFF",
 };
 
+const BootstrapDialog = styled(Dialog)(({ theme }) => ({
+  "& .MuiDialogContent-root": {
+    padding: theme.spacing(2),
+  },
+  "& .MuiDialogActions-root": {
+    padding: theme.spacing(1),
+  },
+}));
 const nodeTypes = {
   diamond: DiamondNode,
   diamond_end: DiamondEndNode,
@@ -79,15 +96,32 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(function Alert(
 
 function App() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const [openValidationFlowStatus, setOpenValidationFlowStatus] =
-    useState(false);
-  const [validationFlowStatusMessage, setValidationFlowStatusMessage] =
-    useState("");
-  const [validationFlowStatusSeverity, setValidationFlowStatusSeverity] =
-    useState<"success" | "error" | "info" | "warning" | undefined>("success");
+  const [runOutput, setRunOutput] = useState("");
+  const [openAlertStatus, setOpenAlertStatus] = useState(false);
+  const [alertStatusMessage, setAlertStatusMessage] = useState("");
+  const [alertStatusSeverity, setAlertStatusSeverity] = useState<
+    "success" | "error" | "info" | "warning" | undefined
+  >("success");
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance>(
     null as any
   );
+  const [openCodeDialog, setOpenCodeDialog] = React.useState(false);
+  const [pythonCode, setPythonCode] = React.useState("");
+  const [openRunFlow, setOpenRunFlow] = React.useState(false);
+
+  const onOpenRunFlow = () => {
+    setOpenRunFlow(true);
+  };
+
+  const onCloseRunFlow = () => {
+    setOpenRunFlow(false);
+  };
+  const onOpenCodeDialog = () => {
+    setOpenCodeDialog(true);
+  };
+  const onCloseCodeDialog = () => {
+    setOpenCodeDialog(false);
+  };
 
   const {
     toastOpen,
@@ -125,8 +159,21 @@ function App() {
   };
 
   const hiddenFileInput = useRef<HTMLInputElement>(null);
-  const handleClick = () => {
+  const loadFlow = () => {
     hiddenFileInput?.current?.click();
+  };
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(pythonCode);
+      setOpenAlertStatus(true);
+      setAlertStatusSeverity("success");
+      setAlertStatusMessage("Code copied to clipboard");
+    } catch (err) {
+      setOpenAlertStatus(true);
+      setAlertStatusSeverity("error");
+      setAlertStatusMessage("Failed to copy code to clipboard");
+    }
   };
 
   // Function to handle file selection
@@ -140,24 +187,24 @@ function App() {
       if (e.target) {
         const text = e.target.result;
         if (typeof text !== "string") {
-          setOpenValidationFlowStatus(true);
-          setValidationFlowStatusSeverity("error");
-          setValidationFlowStatusMessage("Failed to load the file");
+          setOpenAlertStatus(true);
+          setAlertStatusSeverity("error");
+          setAlertStatusMessage("Failed to load the file");
           return;
         }
         try {
           const flow: any = JSON.parse(text);
           if (!parseableFlow(flow)) {
-            setOpenValidationFlowStatus(true);
-            setValidationFlowStatusSeverity("error");
-            setValidationFlowStatusMessage("Invalid flow");
+            setOpenAlertStatus(true);
+            setAlertStatusSeverity("error");
+            setAlertStatusMessage("Invalid flow");
             return;
           }
           setAllNodesAndEdges(flow.nodes, flow.edges);
         } catch (error) {
-          setOpenValidationFlowStatus(true);
-          setValidationFlowStatusSeverity("error");
-          setValidationFlowStatusMessage("Failed to load the flow: " + error);
+          setOpenAlertStatus(true);
+          setAlertStatusSeverity("error");
+          setAlertStatusMessage("Failed to load the flow: " + error);
         }
       }
     };
@@ -246,14 +293,14 @@ function App() {
   const onClickValidate = () => {
     let validFlowResult = validateFlow();
     if (!validFlowResult.isValid) {
-      setValidationFlowStatusSeverity("error");
-      setValidationFlowStatusMessage(validFlowResult.validationMessage ?? "");
-      setOpenValidationFlowStatus(!validFlowResult.isValid);
+      setAlertStatusSeverity("error");
+      setAlertStatusMessage(validFlowResult.validationMessage ?? "");
+      setOpenAlertStatus(!validFlowResult.isValid);
     } else {
-      setValidationFlowStatusSeverity("success");
-      setValidationFlowStatusMessage("Flow is valid");
+      setAlertStatusSeverity("success");
+      setAlertStatusMessage("Flow is valid");
     }
-    setOpenValidationFlowStatus(true);
+    setOpenAlertStatus(true);
   };
 
   const [isOpen, setIsOpen] = React.useState(false);
@@ -288,45 +335,127 @@ function App() {
           commandData={[
             { title: "Validate Flow", onClick: onClickValidate },
             {
-              title: "Create Flow",
-              onClick: () => {},
+              title: "Convert to Flow",
+              onClick: onOpenCodeDialog,
             },
             {
-              title: "Create Python Code",
-              onClick: () => {},
+              title: "Convert to Python",
+              onClick: onOpenCodeDialog,
             },
             {
               title: "Save Flow",
-              onClick: () => {
-                saveFlow();
-              },
+              onClick: saveFlow,
             },
             {
               title: "Load Flow",
-              onClick: () => {
-                handleClick();
-              },
+              onClick: loadFlow,
             },
           ]}
         ></Menubar>
+        <RunFlow
+          isOpen={openRunFlow}
+          onClose={onCloseRunFlow}
+          textAreaValue={runOutput}
+        />
         <Snackbar
           anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-          open={openValidationFlowStatus}
+          open={openAlertStatus}
           autoHideDuration={3000}
           onClose={() => {
-            setOpenValidationFlowStatus(false);
+            setOpenAlertStatus(false);
           }}
         >
           <Alert
             onClose={() => {
-              setOpenValidationFlowStatus(false);
+              setOpenAlertStatus(false);
             }}
-            severity={validationFlowStatusSeverity}
+            severity={alertStatusSeverity}
             sx={{ width: "100%" }}
           >
-            {validationFlowStatusMessage}
+            {alertStatusMessage}
           </Alert>
         </Snackbar>
+        <Button
+          style={{
+            backgroundColor: openRunFlow ? "#d2e0ff" : "#0056b3",
+            borderRadius: "20px",
+            position: "absolute",
+            right: 280,
+            zIndex: 5,
+            top: 8,
+            fontWeight: openRunFlow ? "normal" : "bold",
+            color: openRunFlow ? "grey" : "white",
+            padding: "18px 25px",
+          }}
+          disabled={openRunFlow}
+          onClick={onOpenRunFlow}
+          variant="contained"
+          endIcon={<PlayArrow />}
+        >
+          {openRunFlow ? "Running..." : "Run Flow"}
+        </Button>
+        <BootstrapDialog
+          fullWidth
+          maxWidth="xl"
+          onClose={onCloseCodeDialog}
+          aria-labelledby="customized-dialog-title"
+          open={openCodeDialog}
+        >
+          <DialogTitle sx={{ m: 0, p: 2 }} id="customized-dialog-title">
+            Code Editor
+          </DialogTitle>
+          <IconButton
+            aria-label="close"
+            onClick={onCloseCodeDialog}
+            sx={{
+              position: "absolute",
+              right: 8,
+              top: 8,
+              color: (theme) => theme.palette.grey[500],
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+          <DialogContent dividers>
+            <Editor
+              options={{ readOnly: false, fontSize: 16 }}
+              height="70vh"
+              language="python"
+              theme="vs-dark"
+              value={pythonCode}
+              onChange={(value) => setPythonCode(value ?? "")}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Tooltip title="Update the python code to match your current flow">
+              <IconButton aria-label="update" onClick={() => {}}>
+                <Update />
+              </IconButton>
+            </Tooltip>
+            <Button
+              size="large"
+              autoFocus
+              onClick={() => {
+                copyToClipboard();
+                onCloseCodeDialog();
+              }}
+            >
+              Copy
+            </Button>
+            <Button
+              onClick={() => onCloseCodeDialog()}
+              variant="contained"
+              style={{
+                backgroundColor: "#0056b3",
+                borderRadius: "20px",
+                color: "white",
+                padding: "15px",
+              }}
+            >
+              Convert to Flow
+            </Button>
+          </DialogActions>
+        </BootstrapDialog>
         <ReactFlowProvider>
           <div className="reactflow-wrapper" ref={reactFlowWrapper}>
             <ReactFlow
