@@ -5,7 +5,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import Divider from "@mui/material/Divider";
 import { styled } from "@mui/material/styles";
 import { TextareaAutosize } from "@mui/base/TextareaAutosize";
-import { Send } from "@mui/icons-material";
+import { Redo, Send, SkipNext } from "@mui/icons-material";
+import Tooltip from "@mui/material/Tooltip";
 
 const Root = styled("div")(({ theme }) => ({
   width: "100%",
@@ -42,7 +43,30 @@ const RunFlow = ({ isOpen, onClose, textAreaValue, onChangeInput }: any) => {
             <CloseIcon />
           </IconButton>
           <Root>
-            Run Flow
+            <div style={{ display: "flex", alignItems: "center" }}>
+              Run Flow
+              <Tooltip title="Run flow to the end" placement="top">
+                <IconButton
+                  type="button"
+                  sx={{ p: "10px", marginLeft: "5px" }}
+                  aria-label="Run All Flow"
+                >
+                  <SkipNext />
+                </IconButton>
+              </Tooltip>
+              <Tooltip
+                title="Step to run next flowchart element"
+                placement="top"
+              >
+                <IconButton
+                  type="button"
+                  sx={{ p: "10px", marginLeft: "5px" }}
+                  aria-label="Step Next"
+                >
+                  <Redo />
+                </IconButton>
+              </Tooltip>
+            </div>
             <Divider />
             <TextareaAutosize
               id="run-flow-output"
