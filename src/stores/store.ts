@@ -50,6 +50,8 @@ export type RFState = {
   ) => void;
   nodes: Node<NodeData>[];
   edges: Edge[];
+  pairedEndNodes: Map<string, string>;
+  pairedStartNodes: Map<string, string>;
   lastNodeId: number;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
@@ -269,14 +271,16 @@ function validateLoopNode(
   }
 
   // Perform a BFS from the loop continue handle
+  // The continue handle should not be able to reach back to the loop node
+  // if i want a while inside a while, apparently this check will stop this case, commented for now
+  // TODO: Find out if this check is actually needed
+  /*
   const loopNodeReachableFromContinue = bfsThroughLoopBody(
     nodes,
     edges,
     loopNodeId,
     loopContinue
   );
-
-  // The continue handle should not be able to reach back to the loop node
   if (loopNodeReachableFromContinue) {
     return {
       isValid: false,
@@ -284,6 +288,7 @@ function validateLoopNode(
         "Loop continuation should not be able to reach back to the loop node",
     };
   }
+  */
 
   return { isValid: true, validationMessage: "" };
 }
@@ -356,7 +361,12 @@ function validateIfElseNode(
   return { isValid: true, validationMessage: "" };
 }
 
-function validateFunctionNodes(nodes: Node[], edges: Edge[]) {
+function validateFunctionNodes(
+  nodes: Node[],
+  edges: Edge[],
+  pairedEndNodes: Map<string, string>,
+  pairedStartNodes: Map<string, string>
+) {
   // Filter start and end nodes
   const startNodes = nodes.filter(
     (node) => node.type === "circle" && node.data.functionType === "start"
@@ -364,7 +374,6 @@ function validateFunctionNodes(nodes: Node[], edges: Edge[]) {
   const endNodes = nodes.filter(
     (node) => node.type === "circle" && node.data.functionType === "end"
   );
-  const pairedEndNodes = new Map();
 
   startNodes.forEach((startNode) => {
     // Perform BFS to find an end node reachable from this start node
@@ -375,6 +384,7 @@ function validateFunctionNodes(nodes: Node[], edges: Edge[]) {
     );
     if (connectedEndNode) {
       pairedEndNodes.set(connectedEndNode.id, startNode.id);
+      pairedStartNodes.set(startNode.id, connectedEndNode.id);
     }
   });
 
@@ -459,13 +469,24 @@ const useStore = createWithEqualityFn<RFState>(
       }
 
       // validate function nodes
-      let validationResult = validateFunctionNodes(get().nodes, get().edges);
+      set({
+        pairedEndNodes: new Map<string, string>(),
+        pairedStartNodes: new Map<string, string>(),
+      });
+      let validationResult = validateFunctionNodes(
+        get().nodes,
+        get().edges,
+        get().pairedEndNodes,
+        get().pairedStartNodes
+      );
       if (!validationResult.isValid) {
         return validationResult;
       }
 
       return { isValid: true, validationMessage: null };
     },
+    pairedEndNodes: new Map<string, string>(),
+    pairedStartNodes: new Map<string, string>(),
     nodes: [
       {
         id: "main-start",

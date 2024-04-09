@@ -5,3 +5,9 @@ export function isValidPythonFunctionDefinition(part: string) {
 
   return regex.test(part);
 }
+
+export function isValidVariableFunctionName(part: string) {
+  const regex = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
+  return regex.test(part);
+}

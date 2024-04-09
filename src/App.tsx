@@ -85,6 +85,8 @@ const selector = (state: RFState) => ({
   onToastClose: state.onToastClose,
   nodes: state.nodes,
   edges: state.edges,
+  pairedEndNodes: state.pairedEndNodes,
+  pairedStartNodes: state.pairedStartNodes,
   setAllNodesAndEdges: state.setAllNodesAndEdges,
   lastNodeId: state.lastNodeId,
   onNodesChange: state.onNodesChange,
@@ -131,8 +133,13 @@ function App() {
   const onCloseRunFlow = () => {
     setOpenRunFlow(false);
   };
-  const onOpenCodeDialog = () => {
+  const onOpenCodeDialog = (convertToPython: boolean) => {
     setOpenCodeDialog(true);
+    if (convertToPython) {
+      convertFlowToCode();
+    } else {
+      // convertCodeToFlow();
+    }
   };
   const onCloseCodeDialog = () => {
     setOpenCodeDialog(false);
@@ -153,6 +160,8 @@ function App() {
     onConnect,
     addNode,
     validateFlow,
+    pairedEndNodes,
+    pairedStartNodes,
   } = useStore(selector);
 
   const saveFlow = () => {
@@ -390,8 +399,8 @@ function App() {
       return;
     }
     const ast = parser.parse(code);
+    console.log(ast);
     // TODO: Actually use the visitor pattern given by this parser to convert the code to flow
-    console.log("ast", ast);
 
     let lastNodeId = 0; // Assuming "main-start" is ID 0 for simplicity
     let lastEdgeId = 0;
@@ -602,73 +611,224 @@ function App() {
 
     setAllNodesAndEdges(convertedNodes, convertedEdges);
   };
-  const convertFlowchartToCode = () => {
-    const nodeMap = new Map();
-    const rootNodes: FlowASTNode[] = [];
 
-    // Step 1: Parse nodes and create FlowASTNode instances
+  function dfsMapEnclosures(
+    currentNodeId: string,
+    edgeHandle: string,
+    parentEnclosureStack: string[],
+    visited: Set<string>,
+    nodeMap: Map<string, Node<NodeData>>,
+    parentEnclosureMap: Map<string, string[]> // second one is always length 2
+  ) {
+    if (visited.has(currentNodeId)) return;
+    visited.add(currentNodeId);
+
+    // Update the current node's parent enclosure with the top of the stack
+    if (parentEnclosureStack.length > 0) {
+      const currentEnclosureId =
+        parentEnclosureStack[parentEnclosureStack.length - 1];
+      parentEnclosureMap.set(currentNodeId, [currentEnclosureId, edgeHandle]);
+    }
+
+    const currentNode = nodeMap.get(currentNodeId);
+
+    // Check if this node is a starting enclosure node
+    if (currentNode && isEnclosureStartNode(currentNode)) {
+      parentEnclosureStack.push(currentNodeId); // Push this node as a new enclosure
+    }
+    if (currentNode && isEnclosureEndNode(currentNode, edgeHandle)) {
+      parentEnclosureStack.pop(); // Pop to revert to the previous enclosure
+    }
+    // Find and traverse all directly connected nodes
+    edges
+      .filter((edge) => edge.source === currentNodeId)
+      .forEach((edge) => {
+        // Recursively visit connected nodes
+        dfsMapEnclosures(
+          edge.target,
+          edge.sourceHandle ?? "",
+          [...parentEnclosureStack],
+          visited,
+          nodeMap,
+          parentEnclosureMap
+        );
+      });
+  }
+
+  function isEnclosureStartNode(node: Node<NodeData>) {
+    return (
+      (node.type === "circle" && node.data.functionType !== "end") ||
+      node.type === "circle_start" ||
+      node.type === "diamond" ||
+      node.type === "roundedrectangle"
+    );
+  }
+
+  function isEnclosureEndNode(node: Node<NodeData>, edgeHandle: string) {
+    return (
+      (node.type === "circle" && node.data.functionType === "end") ||
+      node.type === "diamond_end" ||
+      edgeHandle.endsWith("-continue")
+    );
+  }
+
+  const convertFlowToCode = () => {
+    let validFlowResult = validateFlow();
+    if (!validFlowResult.isValid) {
+      setAlertStatusSeverity("error");
+      setAlertStatusMessage(validFlowResult.validationMessage ?? "");
+      setOpenAlertStatus(!validFlowResult.isValid);
+      return;
+    }
+    const astNodeMap = new Map<string, FlowASTNode>();
+    const parentEnclosureMap = new Map<string, string[]>();
+    const astRootNodes: any[] = [];
+    const nodeMap = new Map<string, Node<NodeData>>();
+
+    let rootNodes = nodes.filter(
+      (node) =>
+        node.type === "circle_start" ||
+        (node.type === "circle" && node.data.functionType === "start")
+    );
+
     nodes.forEach((node) => {
-      let astNode = null;
+      nodeMap.set(node.id, node);
+    });
+
+    rootNodes.forEach((node) => {
+      const visited = new Set<string>();
+      const parentEnclosureStack: string[] = [];
+      // it should technically always start with -next and should only have 1 edge going out cuz rootnodes should be function nodes
+      dfsMapEnclosures(
+        node.id,
+        node.id + "-next",
+        parentEnclosureStack,
+        visited,
+        nodeMap,
+        parentEnclosureMap
+      );
+    });
+
+    nodes.every((node) => {
+      let astNode: any = null;
       const { id, type, data } = node;
+      data.label = data.label.trim();
       try {
         switch (type) {
           case "rectangle":
-            if (data.label.includes("=")) {
-              astNode = new AssignmentFlowNode(
-                0,
-                data.label.split("=")[0].trim(),
-                data.label.split("=")[1].trim()
-              );
-            } else {
-              astNode = new MiscellaneousStatementNode(0, data.label);
-            }
+            astNode = new StatementListFlowNode(0, "");
+            data.label.split("\n").forEach((line: string) => {
+              if (line.includes("=")) {
+                const assignmentAstNode = new AssignmentFlowNode(
+                  0,
+                  id,
+                  line.split("=")[0].trim(),
+                  line.split("=")[1].trim()
+                );
+                astNode.addStatement(assignmentAstNode);
+              } else {
+                const miscAstNode = new MiscellaneousStatementNode(
+                  0,
+                  id,
+                  data.label
+                );
+                astNode.addStatement(miscAstNode);
+              }
+            });
             break;
           case "diamond":
-            astNode = new IfFlowNode(0, data.label, undefined, undefined); // Condition handling simplified
+            astNode = new IfFlowNode(0, id, data.label, undefined, undefined); // Condition handling simplified
             break;
           case "parallelogram":
             // Input/Output operations
             if (data.inputType === "input") {
-              astNode = new InputOutputFlowNode(0, IOType.Input, data.label);
+              astNode = new InputOutputFlowNode(
+                0,
+                id,
+                IOType.Input,
+                data.label
+              );
             } else {
-              astNode = new InputOutputFlowNode(0, IOType.Output, data.label);
+              astNode = new InputOutputFlowNode(
+                0,
+                id,
+                IOType.Output,
+                data.label
+              );
             }
             break;
           case "roundedrectangle":
             // Loops (while/for)
-            // You would need to parse the label to distinguish between 'for' and 'while', simplified here
-            astNode = new LoopFlowNode(
-              0,
-              LoopType.While,
-              data.label,
-              new StatementListFlowNode(1)
-            );
-            break;
-          case "circle":
-            const functionPattern = /^(\w+)\((.*)\)$/;
-            const match = data.label.match(functionPattern);
-
-            let functionName = data.label;
-            let argumentExpressions: string[] = [];
-
-            if (match) {
-              functionName = match[1];
-              const args = match[2];
-
-              if (args.trim().length > 0) {
-                argumentExpressions = args.split(",").map((arg) => arg.trim());
-              }
+            let loopType: LoopType | null = null;
+            let loopCondition = data.label;
+            if (data.label.startsWith("while ")) {
+              loopType = LoopType.While;
+              loopCondition = data.label.substring(6);
+            } else if (data.label.startsWith("for ")) {
+              loopType = LoopType.For;
+              loopCondition = data.label.substring(4);
             }
 
+            if (loopType !== null) {
+              astNode = new LoopFlowNode(
+                0,
+                id,
+                loopType,
+                loopCondition,
+                new StatementListFlowNode(1, "")
+              );
+            } else {
+              console.error(
+                `Error creating AST node for node ${id}: Invalid loop type`
+              );
+              setAlertStatusSeverity("error");
+              setAlertStatusMessage(`Error for node ${id}: Invalid loop type`);
+              setOpenAlertStatus(true);
+              return false;
+            }
+            break;
+          case "circle":
+            if (data.functionType === "start") {
+              const functionPattern = /^(\w+)\((.*)\)$/;
+              const match = data.label.match(functionPattern);
+
+              let functionName = data.label;
+              let argumentExpressions: string[] = [];
+
+              if (match) {
+                functionName = match[1];
+                const args = match[2];
+
+                if (args.trim().length > 0) {
+                  argumentExpressions = args
+                    .split(",")
+                    .map((arg) => arg.trim());
+                }
+              }
+
+              const endFunctionNodeId = pairedStartNodes.get(id) ?? "";
+              const endFunctionNode = nodeMap.get(endFunctionNodeId);
+
+              astNode = new FunctionFlowNode(
+                0,
+                id,
+                functionName,
+                new StatementListFlowNode(1, ""),
+                argumentExpressions,
+                endFunctionNode?.data.label ?? ""
+              );
+            }
+            break;
+          case "circle_start":
             astNode = new FunctionFlowNode(
               0,
-              functionName,
-              new StatementListFlowNode(1),
-              argumentExpressions,
+              id,
+              "main",
+              new StatementListFlowNode(1, ""),
+              [],
               ""
             );
             break;
-          case "circle_start":
           case "circle_end":
           case "diamond_end":
             // These might not directly translate to FlowASTNode instances
@@ -679,41 +839,105 @@ function App() {
         setAlertStatusSeverity("error");
         setAlertStatusMessage(`Error for node ${id}: ${error.message}`);
         setOpenAlertStatus(true);
-        return;
+        return false;
       }
+
       if (astNode) {
-        nodeMap.set(id, astNode);
-        if (type === "circle_start" || type === "circle") {
+        astNodeMap.set(id, astNode);
+        if (type === "circle" || type === "circle_start") {
           if (data.functionType === "start") {
-            rootNodes.push(astNode);
+            astRootNodes.push(astNode);
+          } else if (type === "circle_start") {
+            astRootNodes.unshift(astNode);
+            // it should already be the first node inside, but just in case
+          }
+        }
+        let parentNodeId = parentEnclosureMap.get(node.id)?.[0];
+        let parentOriginEdge = parentEnclosureMap.get(node.id)?.[1];
+        if (parentOriginEdge && parentNodeId) {
+          let parentOriginEdgeId = parentOriginEdge.split("-", 2)[0]; // should be the id
+          while (parentOriginEdgeId !== parentNodeId) {
+            parentOriginEdge = parentEnclosureMap.get(parentOriginEdgeId)?.[1];
+            if (!parentOriginEdge) break;
+            parentOriginEdgeId = parentOriginEdge.split("-", 2)[0];
+          }
+          if (parentOriginEdge && parentOriginEdge.endsWith("-continue")) {
+            // get the enclosure of the loop if it's a continue...
+            parentNodeId = parentEnclosureMap.get(parentOriginEdgeId)?.[0];
+            parentOriginEdge = parentEnclosureMap.get(parentOriginEdgeId)?.[1];
+          }
+        }
+
+        let parentNode = astNodeMap.get(parentNodeId ?? "");
+
+        if (parentNode) {
+          let parentNestingLevel = parentNode.nestingLevel;
+          if (
+            parentNode instanceof LoopFlowNode ||
+            parentNode instanceof FunctionFlowNode
+          ) {
+            let parentNodeCasted = parentNode as
+              | LoopFlowNode
+              | FunctionFlowNode;
+            if (astNode instanceof StatementListFlowNode) {
+              astNode.statements.forEach((statement) => {
+                statement.setNestingLevel(parentNodeCasted.nestingLevel + 1);
+                parentNodeCasted.body.addStatement(statement);
+              });
+            } else {
+              astNode.setNestingLevel(parentNestingLevel + 1);
+              parentNode.body.addStatement(astNode);
+            }
+          } else if (parentNode instanceof IfFlowNode) {
+            let parentNodeStatementListNode: StatementListFlowNode;
+            if (parentOriginEdge?.endsWith("-if")) {
+              if (!parentNode.thenStatementListNode) {
+                parentNode.thenStatementListNode = new StatementListFlowNode(
+                  parentNestingLevel + 1,
+                  ""
+                );
+              }
+              parentNodeStatementListNode = parentNode.thenStatementListNode;
+            } else if (parentOriginEdge?.endsWith("-else")) {
+              if (!parentNode.elseStatementListNode) {
+                parentNode.elseStatementListNode = new StatementListFlowNode(
+                  parentNestingLevel + 1,
+                  ""
+                );
+              }
+              parentNodeStatementListNode = parentNode.elseStatementListNode;
+            } else {
+              console.error(
+                `Error creating AST node for node ${id}: Invalid parent origin edge ${parentOriginEdge}`
+              );
+              setAlertStatusSeverity("error");
+              setAlertStatusMessage(
+                `Error for node ${id}: Unable to convert flow`
+              );
+              setOpenAlertStatus(true);
+              return false;
+            }
+            if (astNode instanceof StatementListFlowNode) {
+              astNode.statements.forEach((statement) => {
+                statement.setNestingLevel(parentNestingLevel + 1);
+                parentNodeStatementListNode.addStatement(statement);
+              });
+            } else {
+              astNode.setNestingLevel(parentNestingLevel + 1);
+              parentNodeStatementListNode.addStatement(astNode);
+            }
           }
         }
       }
+      return true;
     });
 
-    // Step 2: Build relationships based on edges
-    edges.forEach((edge) => {
-      const { source, target, sourceHandle, targetHandle } = edge;
-      const parentNode = nodeMap.get(source);
-      const childNode = nodeMap.get(target);
-
-      if (parentNode && childNode) {
-        // Assuming all nodes under a parent are part of a statement list
-        // This logic will need to be expanded for if-else, loops, etc., based on handles
-        if (!parentNode.children) {
-          parentNode.children = [];
-        }
-        parentNode.children.push(childNode);
-      }
-    });
-
-    // Step 3: Generate code by traversing the AST from root nodes
     let code = "";
-    rootNodes.forEach((rootNode: FlowASTNode) => {
+    astRootNodes.forEach((rootNode: FlowASTNode) => {
       code += rootNode.toCode();
     });
 
-    return code;
+    setPythonCode(code);
   };
 
   const [isOpen, setIsOpen] = React.useState(false);
@@ -749,11 +973,11 @@ function App() {
             { title: "Validate Flow", onClick: onClickValidate },
             {
               title: "Convert to Flow",
-              onClick: onOpenCodeDialog,
+              onClick: () => onOpenCodeDialog(false),
             },
             {
               title: "Convert to Python",
-              onClick: onOpenCodeDialog,
+              onClick: () => onOpenCodeDialog(true),
             },
             {
               title: "Save Flow",
@@ -841,7 +1065,7 @@ function App() {
           </DialogContent>
           <DialogActions>
             <Tooltip title="Update the python code to match your current flow">
-              <IconButton aria-label="update" onClick={() => {}}>
+              <IconButton aria-label="update" onClick={convertFlowToCode}>
                 <Update />
               </IconButton>
             </Tooltip>

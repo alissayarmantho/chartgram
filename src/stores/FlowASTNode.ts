@@ -1,5 +1,6 @@
 import jsep from "jsep";
 import object from "@jsep-plugin/object";
+import { isValidVariableFunctionName } from "./utils";
 jsep.plugins.register(object);
 
 export enum LoopType {
@@ -16,9 +17,15 @@ export type FlowASTNodeChild = FlowASTNode | null;
 export abstract class FlowASTNode {
   children: FlowASTNodeChild[] = [];
   nestingLevel: number;
+  nodeId: string;
 
-  constructor(nestingLevel: number) {
+  constructor(nestingLevel: number, nodeId: string) {
     this.nestingLevel = nestingLevel;
+    this.nodeId = nodeId;
+  }
+
+  setId(nodeId: string): void {
+    this.nodeId = nodeId;
   }
 
   setNestingLevel(nestingLevel: number): void {
@@ -35,8 +42,12 @@ export abstract class StatementFlowNode extends FlowASTNode {
 export class StatementListFlowNode extends FlowASTNode {
   statements: StatementFlowNode[] = [];
 
-  constructor(nestingLevel: number, statements: StatementFlowNode[] = []) {
-    super(nestingLevel);
+  constructor(
+    nestingLevel: number,
+    nodeId: string,
+    statements: StatementFlowNode[] = []
+  ) {
+    super(nestingLevel, nodeId);
     this.statements = statements;
   }
   addStatement(statement: StatementFlowNode): void {
@@ -44,7 +55,9 @@ export class StatementListFlowNode extends FlowASTNode {
   }
 
   toCode(): string {
-    return this.statements.map((statement) => statement.toCode()).join("");
+    return (
+      this.statements.map((statement) => statement.toCode()).join("\n") + "\n"
+    );
   }
 }
 
@@ -53,17 +66,25 @@ export class AssignmentFlowNode extends FlowASTNode {
   expression: string;
   parsedExpression: jsep.Expression | null = null;
 
-  constructor(nestingLevel: number, varName: string, expression: string) {
-    super(nestingLevel);
+  constructor(
+    nestingLevel: number,
+    nodeId: string,
+    varName: string,
+    expression: string
+  ) {
+    super(nestingLevel, nodeId);
     this.varName = varName;
     this.expression = expression;
     this.validateExpression();
   }
   validateExpression(): void {
-    if (!/^[a-z0-9]+$/i.test(this.varName)) {
+    if (!isValidVariableFunctionName(this.varName)) {
       throw new Error(
-        `Invalid variable name '${this.varName}'. Variable names must be alphanumeric.`
+        `Invalid variable name '${this.varName}'. Variable names must be alphanumeric_ and does not start with numbers.`
       );
+    }
+    if (this.expression === "") {
+      throw new Error("Empty assignment expression is not allowed.");
     }
 
     // I'm allowing int/str type casting to go through here cuz input is always string :(
@@ -101,11 +122,12 @@ export class IfFlowNode extends StatementFlowNode {
 
   constructor(
     nestingLevel: number,
+    nodeId: string,
     conditionExpression: string,
     thenStatements?: StatementListFlowNode,
     elseStatements?: StatementListFlowNode
   ) {
-    super(nestingLevel);
+    super(nestingLevel, nodeId);
     this.conditionExpression = conditionExpression;
     this.thenStatementListNode = thenStatements || null;
     this.elseStatementListNode = elseStatements || null;
@@ -165,11 +187,12 @@ export class LoopFlowNode extends StatementFlowNode {
 
   constructor(
     nestingLevel: number,
+    nodeId: string,
     loopType: LoopType,
     iteration: string,
     body: StatementListFlowNode
   ) {
-    super(nestingLevel);
+    super(nestingLevel, nodeId);
     this.loopType = loopType;
     this.iteration = iteration;
     this.body = body;
@@ -220,18 +243,28 @@ export class InputOutputFlowNode extends StatementFlowNode {
   ioType: IOType;
   varName: string;
 
-  constructor(nestingLevel: number, ioType: IOType, varName: string) {
-    super(nestingLevel);
+  constructor(
+    nestingLevel: number,
+    nodeId: string,
+    ioType: IOType,
+    varName: string
+  ) {
+    super(nestingLevel, nodeId);
     this.ioType = ioType;
     this.varName = varName;
+    if (!isValidVariableFunctionName(this.varName)) {
+      throw new Error(
+        `Invalid variable name '${this.varName}'. Variable names must be alphanumeric_ and does not start with numbers.`
+      );
+    }
   }
 
   toCode(): string {
     const indent = " ".repeat(this.nestingLevel * 4);
     if (this.ioType === IOType.Input) {
-      return `${indent}${this.varName} = input("Getting input for ${this.varName}. Remember input is always type string...")\n`;
+      return `${indent}${this.varName} = input("Getting input for ${this.varName}. Remember input is always type string...")`;
     } else if (this.ioType === IOType.Output) {
-      return `${indent}print(${this.varName})\n`;
+      return `${indent}print(${this.varName})`;
     }
     return ""; // Fallback case
   }
@@ -240,16 +273,19 @@ export class InputOutputFlowNode extends StatementFlowNode {
 export class MiscellaneousStatementNode extends StatementFlowNode {
   statement: string;
 
-  constructor(nestingLevel: number, statement: string) {
-    super(nestingLevel);
+  constructor(nestingLevel: number, nodeId: string, statement: string) {
+    super(nestingLevel, nodeId);
     this.statement = statement;
     this.validateStatement();
   }
   validateStatement(): void {
+    if (this.statement === "") {
+      throw new Error("Empty statement is not allowed.");
+    }
     // Patterns to match the list and dictionary operations
-    const listInsertPattern = /^[a-zA-Z0-9_]+\.append\([^\)]+\)$/;
-    const listInsertAtPattern = /^[a-zA-Z0-9_]+\.insert\(\d+,[^\)]+\)$/;
-    const listRemovePattern = /^[a-zA-Z0-9_]+\.remove\([^\)]+\)$/;
+    const listInsertPattern = /^[a-zA-Z0-9_]+\.append\([^)]+\)$/;
+    const listInsertAtPattern = /^[a-zA-Z0-9_]+\.insert\(\d+,[^)]+\)$/;
+    const listRemovePattern = /^[a-zA-Z0-9_]+\.remove\([^)]+\)$/;
     const listRemoveAtPattern = /^[a-zA-Z0-9_]+\.pop\(\d+\)$/;
     const accessPattern = /^[a-zA-Z0-9_]+\[[^\]]+\]$/;
     const dictInsertPattern = /^[a-zA-Z0-9_]+\[[^\]]+\] = .+$/;
@@ -273,9 +309,29 @@ export class MiscellaneousStatementNode extends StatementFlowNode {
         `Invalid statement: '${this.statement}'. Does not match any supported list or dictionary operation.`
       );
     }
+    if (functionCallPattern.test(this.statement)) {
+      const match = this.statement.match(functionCallPattern);
+      if (match) {
+        const functionName = match[1];
+        const args = match[2];
+        if (!isValidVariableFunctionName(functionName)) {
+          throw new Error(
+            `Invalid function name '${functionName}'. Function names must be alphanumeric_ and does not start with numbers.`
+          );
+        }
+        const argsList = args.split(",");
+        argsList.forEach((arg: string) => {
+          if (!isValidVariableFunctionName(arg.trim())) {
+            throw new Error(
+              `Invalid argument '${arg}'. Function arguments must be alphanumeric_ and does not start with numbers.`
+            );
+          }
+        });
+      }
+    }
   }
   toCode(): string {
-    return `${" ".repeat(this.nestingLevel * 4)}${this.statement}\n`;
+    return `${" ".repeat(this.nestingLevel * 4)}${this.statement}`;
   }
 }
 
@@ -287,19 +343,30 @@ export class FunctionFlowNode extends FlowASTNode {
 
   constructor(
     nestingLevel: number,
+    nodeId: string,
     functionName: string,
     body: StatementListFlowNode,
     argumentExpressions: string[],
     returnExpression: string
   ) {
-    super(nestingLevel);
+    super(nestingLevel, nodeId);
     this.functionName = functionName;
+    if (this.functionName === "") {
+      throw new Error("Function name cannot be empty.");
+    }
+    if (!isValidVariableFunctionName(this.functionName)) {
+      throw new Error(
+        `Invalid function name '${this.functionName}'. Function names must be alphanumeric_ and does not start with numbers.`
+      );
+    }
     this.body = body;
     this.argumentExpressions = argumentExpressions;
     this.returnExpression = returnExpression;
     // Validate argumentExpressions and returnExpression
     this.validateArguments();
-    this.validateReturnExpression();
+    if (this.returnExpression !== "") {
+      this.validateReturnExpression();
+    }
   }
 
   getBody(): StatementListFlowNode {
@@ -308,18 +375,18 @@ export class FunctionFlowNode extends FlowASTNode {
 
   validateArguments(): void {
     this.argumentExpressions.forEach((arg: string) => {
-      if (!/^[a-z0-9]+$/i.test(arg)) {
+      if (!isValidVariableFunctionName(arg)) {
         throw new Error(
-          `Invalid argument '${arg}'. Function arguments must be alphanumeric.`
+          `Invalid argument '${arg}'. Function arguments must be alphanumeric_ and does not start with numbers.`
         );
       }
     });
   }
 
   validateReturnExpression(): void {
-    if (!/^[a-z0-9]+$/i.test(this.returnExpression)) {
+    if (!isValidVariableFunctionName(this.returnExpression)) {
       throw new Error(
-        `Invalid return expression '${this.returnExpression}'. Return expressions must be alphanumeric.`
+        `Invalid return expression '${this.returnExpression}'. Return expressions must be alphanumeric_ and does not start with numbers.`
       );
     }
   }
