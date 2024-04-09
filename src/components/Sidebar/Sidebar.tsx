@@ -188,9 +188,7 @@ const Sidebar = ({ nodes, setNodes }: any) => {
               marginTop: "0px",
             }}
           >
-            <div className="form__field" style={{ width: "80px" }}>
-              Function
-            </div>
+            <div className="form__field">Function</div>
           </div>
         </div>
       </div>
