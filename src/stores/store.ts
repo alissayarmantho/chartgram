@@ -356,6 +356,46 @@ function validateIfElseNode(
   return { isValid: true, validationMessage: "" };
 }
 
+function validateFunctionNodes(nodes: Node[], edges: Edge[]) {
+  // Filter start and end nodes
+  const startNodes = nodes.filter(
+    (node) => node.type === "circle" && node.data.functionType === "start"
+  );
+  const endNodes = nodes.filter(
+    (node) => node.type === "circle" && node.data.functionType === "end"
+  );
+  const pairedEndNodes = new Map();
+
+  startNodes.forEach((startNode) => {
+    // Perform BFS to find an end node reachable from this start node
+    const reachableNodes = bfs(edges, startNode.id);
+    const connectedEndNode = endNodes.find(
+      (endNode) =>
+        reachableNodes.includes(endNode.id) && !pairedEndNodes.has(endNode.id)
+    );
+    if (connectedEndNode) {
+      pairedEndNodes.set(connectedEndNode.id, startNode.id);
+    }
+  });
+
+  // Validate all end nodes are paired
+  const allEndNodesPaired = endNodes.every((endNode) =>
+    pairedEndNodes.has(endNode.id)
+  );
+  // Validate all start nodes are paired
+  const allStartNodesPaired = startNodes.every((startNode) =>
+    Array.from(pairedEndNodes.values()).includes(startNode.id)
+  );
+
+  return {
+    isValid: allEndNodesPaired && allStartNodesPaired,
+    validationMessage:
+      allEndNodesPaired && allStartNodesPaired
+        ? ""
+        : "All function start nodes need to be paired with function end nodes.",
+  };
+}
+
 // this is our useStore hook that we can use in our components to get parts of the store and call actions
 const useStore = createWithEqualityFn<RFState>(
   (set, get) => ({
@@ -416,6 +456,12 @@ const useStore = createWithEqualityFn<RFState>(
         if (!validationResult.isValid) {
           return validationResult;
         }
+      }
+
+      // validate function nodes
+      let validationResult = validateFunctionNodes(get().nodes, get().edges);
+      if (!validationResult.isValid) {
+        return validationResult;
       }
 
       return { isValid: true, validationMessage: null };
