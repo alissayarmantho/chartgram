@@ -747,6 +747,21 @@ function App() {
       edgeHandle.endsWith("-continue")
     );
   }
+  function dfsSortNodes(
+    currentNodeId: string,
+    visited: Set<string>,
+    visitOrder: string[],
+    edgesMap: Map<string, Edge[]>
+  ) {
+    if (visited.has(currentNodeId)) return;
+    visited.add(currentNodeId);
+    visitOrder.push(currentNodeId);
+
+    const childEdges = edgesMap.get(currentNodeId) || [];
+    childEdges.forEach((edge) => {
+      dfsSortNodes(edge.target, visited, visitOrder, edgesMap);
+    });
+  }
 
   const convertFlowToCode = (): string => {
     let validFlowResult = validateFlow();
@@ -784,10 +799,33 @@ function App() {
         parentEnclosureMap
       );
     });
+    const sortingVisited: Set<string> = new Set();
+    const visitOrder: string[] = [];
+    const edgesMap = new Map<string, Edge[]>();
+    edges.forEach((edge: Edge) => {
+      if (!edgesMap.has(edge.source)) {
+        edgesMap.set(edge.source, []);
+      }
+      let edgeList = edgesMap.get(edge.source);
+      if (edgeList) {
+        edgeList.push(edge);
+      }
+    });
+    rootNodes.forEach((rootNode) => {
+      dfsSortNodes(rootNode.id, sortingVisited, visitOrder, edgesMap);
+    });
 
     let hasAnyError: boolean = false;
-    nodes.every((node) => {
+    visitOrder.every((nodeId) => {
       let astNode: any = null;
+      let node = nodeMap.get(nodeId);
+      if (!node) {
+        setAlertStatusSeverity("error");
+        setAlertStatusMessage(`Error for node ${nodeId}: Unable to find node`);
+        setOpenAlertStatus(true);
+        hasAnyError = true;
+        return false;
+      }
       const { id, type, data } = node;
       data.label = data.label.trim();
       try {
@@ -1188,6 +1226,13 @@ function App() {
                 onClick={() => {
                   let code = convertFlowToCode();
                   setPythonCode(code);
+                  if (code) {
+                    setOpenAlertStatus(true);
+                    setAlertStatusSeverity("success");
+                    setAlertStatusMessage(
+                      "Code successfully updated to the latest flow"
+                    );
+                  }
                 }}
               >
                 <Update />
