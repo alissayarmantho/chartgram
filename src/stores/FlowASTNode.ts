@@ -259,7 +259,7 @@ export class InputOutputFlowNode extends StatementFlowNode {
   toCode(): string {
     const indent = " ".repeat(this.nestingLevel * 4);
     if (this.ioType === IOType.Input) {
-      return `${indent}${this.varName} = input("Getting input for ${this.varName}. Remember input is always type string...")`;
+      return `${indent}${this.varName} = input("Getting input for ${this.varName}. Remember input is always type string...: ")`;
     } else if (this.ioType === IOType.Output) {
       return `${indent}print(${this.varName})`;
     }
