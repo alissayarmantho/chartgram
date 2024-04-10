@@ -35,7 +35,7 @@ const DiamondNode: React.FC<NodeProps<NodeData>> = ({
               maxRows={2}
               className="form__field nodrag"
               value={data.label}
-              placeholder="Insert Text Here"
+              placeholder="some_variable == 3"
               onChange={(evt: React.ChangeEvent<HTMLTextAreaElement>) =>
                 onChange(id, evt.target.value)
               }

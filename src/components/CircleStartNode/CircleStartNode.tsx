@@ -26,7 +26,7 @@ export const CircleStartNode: React.FC<NodeProps<NodeData>> = ({
           style={{ width: "170px", resize: "none" }}
           className="form__field nodrag"
           value={data.label}
-          placeholder="Insert Text Here"
+          placeholder="main"
           disabled
         />
       </div>
