@@ -18,7 +18,16 @@ const Root = styled("div")(({ theme }) => ({
     marginTop: theme.spacing(2),
   },
 }));
-const RunFlow = ({ isOpen, onClose, textAreaValue, onChangeInput }: any) => {
+const RunFlow = ({
+  isOpen,
+  onClose,
+  textAreaValue,
+  onChangeInput,
+  inputValue,
+  sendInput,
+  runFlow,
+  runNextLine,
+}: any) => {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -50,6 +59,7 @@ const RunFlow = ({ isOpen, onClose, textAreaValue, onChangeInput }: any) => {
                   type="button"
                   sx={{ p: "10px", marginLeft: "5px" }}
                   aria-label="Run All Flow"
+                  onClick={runFlow}
                 >
                   <SkipNext />
                 </IconButton>
@@ -62,6 +72,7 @@ const RunFlow = ({ isOpen, onClose, textAreaValue, onChangeInput }: any) => {
                   type="button"
                   sx={{ p: "10px", marginLeft: "5px" }}
                   aria-label="Step Next"
+                  onClick={runNextLine}
                 >
                   <Redo />
                 </IconButton>
@@ -88,14 +99,24 @@ const RunFlow = ({ isOpen, onClose, textAreaValue, onChangeInput }: any) => {
                 id="run-flow-input"
                 className="input-textbox nodrag"
                 maxRows={1}
+                value={inputValue}
                 style={{
                   resize: "none",
                   width: "400px",
                   marginRight: "10px",
                 }}
+                onKeyDown={(e) => e.key === "Enter" && sendInput()}
+                onChange={(evt: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  onChangeInput(evt.target.value)
+                }
                 placeholder="Input Here"
               />
-              <IconButton type="button" sx={{ p: "20px" }} aria-label="Send">
+              <IconButton
+                type="button"
+                sx={{ p: "20px" }}
+                onClick={sendInput}
+                aria-label="Send"
+              >
                 <Send />
               </IconButton>
             </div>
