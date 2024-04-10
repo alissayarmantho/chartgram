@@ -17,7 +17,10 @@ export const RectangleNode: React.FC<NodeProps<NodeData>> = ({
   const isValidConnection = useStore((state) => state.isValidConnection);
   // const onAdd = useStore((state) => state.addNode);
   return (
-    <div className="text-updater-node">
+    <div
+      className="text-updater-node"
+      style={{ borderColor: data.hasError ? "red" : undefined }}
+    >
       <NodeToolbar>
         <button className="icon-button" onClick={() => onDelete(id)}>
           <DeleteIcon />

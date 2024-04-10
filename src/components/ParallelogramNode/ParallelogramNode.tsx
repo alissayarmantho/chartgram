@@ -24,7 +24,10 @@ export const ParallelogramNode: React.FC<NodeProps<NodeData>> = ({
           <DeleteIcon />
         </button>
       </NodeToolbar>
-      <div className="parallelogram">
+      <div
+        className="parallelogram"
+        style={{ borderColor: data.hasError ? "red" : undefined }}
+      >
         <div className="unskew-parallelogram">
           <div className="form__group">
             <RadioGroup

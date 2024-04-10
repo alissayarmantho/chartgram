@@ -22,11 +22,13 @@ export type NodeData = {
   label: string;
   inputType?: string;
   functionType?: string;
+  hasError?: boolean;
 };
 
 export type ValidateResult = {
   isValid: boolean;
   validationMessage: string | null;
+  problemNodeIds?: string[];
 };
 
 export type NodeIDHandle = {
@@ -65,6 +67,7 @@ export type RFState = {
   changeInputType: (nodeId: string, inputType: string) => void;
   changeFunctionType: (nodeId: string, functionType: string) => void;
   validateFlow: () => ValidateResult;
+  changeHasError: (nodeId: string, hasError: boolean) => void;
 };
 function findConnectedNodeToHandle(
   edges: Edge[],
@@ -366,7 +369,7 @@ function validateFunctionNodes(
   edges: Edge[],
   pairedEndNodes: Map<string, string>,
   pairedStartNodes: Map<string, string>
-) {
+): ValidateResult {
   // Filter start and end nodes
   const startNodes = nodes.filter(
     (node) => node.type === "circle" && node.data.functionType === "start"
@@ -389,13 +392,24 @@ function validateFunctionNodes(
   });
 
   // Validate all end nodes are paired
-  const allEndNodesPaired = endNodes.every((endNode) =>
-    pairedEndNodes.has(endNode.id)
-  );
+  let problemNodeIds: string[] = [];
+  const allEndNodesPaired = endNodes.every((endNode) => {
+    let endNodePair = pairedEndNodes.has(endNode.id);
+    if (!endNodePair) {
+      problemNodeIds.push(endNode.id);
+      return false;
+    }
+    return true;
+  });
   // Validate all start nodes are paired
-  const allStartNodesPaired = startNodes.every((startNode) =>
-    Array.from(pairedEndNodes.values()).includes(startNode.id)
-  );
+  const allStartNodesPaired = startNodes.every((startNode) => {
+    let hasPair = Array.from(pairedEndNodes.values()).includes(startNode.id);
+    if (!hasPair) {
+      problemNodeIds.push(startNode.id);
+      return false;
+    }
+    return true;
+  });
 
   return {
     isValid: allEndNodesPaired && allStartNodesPaired,
@@ -403,6 +417,7 @@ function validateFunctionNodes(
       allEndNodesPaired && allStartNodesPaired
         ? ""
         : "All function start nodes need to be paired with function end nodes.",
+    problemNodeIds: problemNodeIds,
   };
 }
 
@@ -432,23 +447,43 @@ const useStore = createWithEqualityFn<RFState>(
         toastType: type,
       }));
     },
+    changeHasError: (nodeId: string, hasError: boolean) => {
+      set({
+        nodes: get().nodes.map((node) => {
+          if (node.id === nodeId) {
+            node.data = { ...node.data, hasError };
+          }
+          return node;
+        }),
+      });
+    },
     validateFlow: () => {
       const endReachableValidationResult = validateStartConnectedToEnd(
         get().edges
       );
+
       if (!endReachableValidationResult.isValid) {
+        set({
+          nodes: get().nodes.map((node) => {
+            if (node.type === "circle_start" || node.type === "circle_end") {
+              node.data = { ...node.data, hasError: true };
+            }
+            return node;
+          }),
+        });
         return endReachableValidationResult;
       }
 
       // Get if-else nodes
       const ifElseNodes = get().nodes.filter((node) => node.type === "diamond");
       for (let node of ifElseNodes) {
-        let validationResult = validateIfElseNode(
+        const validationResult = validateIfElseNode(
           get().nodes,
           get().edges,
           node.id
         );
         if (!validationResult.isValid) {
+          get().changeHasError(node.id, true);
           return validationResult;
         }
       }
@@ -464,6 +499,7 @@ const useStore = createWithEqualityFn<RFState>(
           node.id
         );
         if (!validationResult.isValid) {
+          get().changeHasError(node.id, true);
           return validationResult;
         }
       }
@@ -480,6 +516,10 @@ const useStore = createWithEqualityFn<RFState>(
         get().pairedStartNodes
       );
       if (!validationResult.isValid) {
+        let problemNodeIds = validationResult.problemNodeIds ?? [];
+        problemNodeIds.forEach((nodeId) => {
+          get().changeHasError(nodeId, true);
+        });
         return validationResult;
       }
 
@@ -492,12 +532,12 @@ const useStore = createWithEqualityFn<RFState>(
         id: "main-start",
         type: "circle_start",
         position: { x: 500, y: 100 },
-        data: { label: "Main Start", functionType: "start" },
+        data: { label: "Main Start", hasError: false, functionType: "start" },
       },
       {
         id: "main-end",
         type: "circle_end",
-        data: { label: "Main End", functionType: "end" },
+        data: { label: "Main End", hasError: false, functionType: "end" },
         position: { x: 500, y: 400 },
       },
     ],
@@ -575,13 +615,19 @@ const useStore = createWithEqualityFn<RFState>(
           },
           get().edges
         ),
+        nodes: get().nodes.map((node) => {
+          if (node.id === connection.source || node.id === connection.target) {
+            node.data = { ...node.data, hasError: false };
+          }
+          return node;
+        }),
       });
     },
     updateNodeLabel: (nodeId: string, label: string) => {
       set({
         nodes: get().nodes.map((node) => {
           if (node.id === nodeId) {
-            node.data = { ...node.data, label };
+            node.data = { ...node.data, label, hasError: false };
           }
 
           return node;
@@ -597,7 +643,7 @@ const useStore = createWithEqualityFn<RFState>(
       });
     },
     addNode: (type: string, node?: Node) => {
-      let newData: NodeData = { label: "" };
+      let newData: NodeData = { label: "", hasError: false };
       if (type === "parallelogram") {
         newData = { ...newData, inputType: "input" };
       }

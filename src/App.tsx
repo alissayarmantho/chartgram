@@ -59,6 +59,7 @@ import "ace-builds/src-noconflict/theme-xcode";
 import "ace-builds/src-noconflict/ext-language_tools";
 import "ace-builds/src-noconflict/snippets/python";
 import "ace-builds/src-min-noconflict/ext-searchbox";
+import { stat } from "fs/promises";
 
 const rfStyle = {
   backgroundColor: "#B8CEFF",
@@ -102,6 +103,7 @@ const selector = (state: RFState) => ({
   onConnect: state.onConnect,
   addNode: state.addNode,
   validateFlow: state.validateFlow,
+  changeHasError: state.changeHasError,
 });
 
 const theme: Theme = createTheme({
@@ -191,6 +193,15 @@ function App() {
     );
   }
 
+  const showAlertStatus = (
+    statusSeverity: "success" | "error" | "info" | "warning" | undefined,
+    msg: string
+  ) => {
+    setOpenAlertStatus(true);
+    setAlertStatusSeverity(statusSeverity);
+    setAlertStatusMessage(msg);
+  };
+
   const runNextLine = () => {
     return;
   };
@@ -233,6 +244,7 @@ function App() {
     addNode,
     validateFlow,
     pairedStartNodes,
+    changeHasError,
   } = useStore(selector);
 
   const saveFlow = () => {
@@ -261,13 +273,9 @@ function App() {
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(pythonCode);
-      setOpenAlertStatus(true);
-      setAlertStatusSeverity("success");
-      setAlertStatusMessage("Code copied to clipboard");
+      showAlertStatus("success", "Code copied to clipboard");
     } catch (err) {
-      setOpenAlertStatus(true);
-      setAlertStatusSeverity("error");
-      setAlertStatusMessage("Failed to copy code to clipboard");
+      showAlertStatus("error", "Failed to copy code to clipboard");
     }
   };
 
@@ -282,24 +290,19 @@ function App() {
       if (e.target) {
         const text = e.target.result;
         if (typeof text !== "string") {
-          setOpenAlertStatus(true);
-          setAlertStatusSeverity("error");
-          setAlertStatusMessage("Failed to load the file");
+          showAlertStatus("error", "Failed to load the file");
           return;
         }
         try {
           const flow: any = JSON.parse(text);
           if (!parseableFlow(flow)) {
-            setOpenAlertStatus(true);
-            setAlertStatusSeverity("error");
-            setAlertStatusMessage("Invalid flow");
+            showAlertStatus("error", "Invalid flow");
             return;
           }
           setAllNodesAndEdges(flow.nodes, flow.edges);
         } catch (error) {
-          setOpenAlertStatus(true);
-          setAlertStatusSeverity("error");
-          setAlertStatusMessage("Failed to load the flow: " + error);
+          showAlertStatus("error", "Failed to load the flow: " + error);
+          return;
         }
       }
     };
@@ -372,7 +375,7 @@ function App() {
           id: lastNodeId.toString(),
           type,
           position,
-          data: { label: "" },
+          data: { label: "", hasError: false },
         };
 
         if (type === "parallelogram") {
@@ -390,14 +393,13 @@ function App() {
   const onClickValidate = () => {
     let validFlowResult = validateFlow();
     if (!validFlowResult.isValid) {
-      setAlertStatusSeverity("error");
-      setAlertStatusMessage(validFlowResult.validationMessage ?? "");
-      setOpenAlertStatus(!validFlowResult.isValid);
+      showAlertStatus(
+        "error",
+        validFlowResult.validationMessage ?? "Flow is not valid"
+      );
     } else {
-      setAlertStatusSeverity("success");
-      setAlertStatusMessage("Flow is valid");
+      showAlertStatus("success", "Flow is valid");
     }
-    setOpenAlertStatus(true);
   };
   const editorOnLoad = (editor: Ace.Editor) => {
     editor.renderer.setScrollMargin(10, 10, 0, 0);
@@ -416,7 +418,7 @@ function App() {
       id: lastNodeId.toString(),
       type: type,
       position: { x: xPosition, y: yPosition },
-      data: { label, ...additionalData },
+      data: { label, hasError: false, ...additionalData },
     };
 
     return newNode;
@@ -446,9 +448,7 @@ function App() {
     const parser = new Python3Parser();
     const errors = parser.validate(code);
     if (errors.length > 0) {
-      setAlertStatusSeverity("error");
-      setAlertStatusMessage("Syntax errors found. Cannot convert to flow.");
-      setOpenAlertStatus(true);
+      showAlertStatus("error", "Syntax errors found. Cannot convert to flow");
       return;
     }
 
@@ -578,11 +578,10 @@ function App() {
             rest !== "int(input())"
           ) {
             // I'm allowing and hardcoding the above :). TODO: Fix this
-            setAlertStatusSeverity("error");
-            setAlertStatusMessage(
-              "Invalid input format. Chartgram currently does not support prompt text for input. Cannot convert to flow."
+            showAlertStatus(
+              "error",
+              "Invalid input format. Chartgram currently does not support prompt text for input. Cannot convert to flow"
             );
-            setOpenAlertStatus(true);
             return;
           }
           label = varAssignment;
@@ -609,19 +608,17 @@ function App() {
       } else if (trimmedLine.startsWith("def")) {
         let functionSplitted = trimmedLine.split(" ")[1];
         if (functionSplitted.length !== 2) {
-          setAlertStatusSeverity("error");
-          setAlertStatusMessage(
-            "def in python need to have at least a function name. Cannot convert to flow."
+          showAlertStatus(
+            "error",
+            "def in python need to have at least a function name. Cannot convert to flow"
           );
-          setOpenAlertStatus(true);
           return;
         }
         if (!isValidPythonFunctionDefinition(functionSplitted[1])) {
-          setAlertStatusSeverity("error");
-          setAlertStatusMessage(
-            "Invalid function declaration format. Cannot convert to flow."
+          showAlertStatus(
+            "error",
+            "Invalid function declaration format. Cannot convert to flow"
           );
-          setOpenAlertStatus(true);
           return;
         }
         type = "circle";
@@ -765,9 +762,10 @@ function App() {
   const convertFlowToCode = (): string => {
     let validFlowResult = validateFlow();
     if (!validFlowResult.isValid) {
-      setAlertStatusSeverity("error");
-      setAlertStatusMessage(validFlowResult.validationMessage ?? "");
-      setOpenAlertStatus(!validFlowResult.isValid);
+      showAlertStatus(
+        "error",
+        validFlowResult.validationMessage ?? "Flow is not valid"
+      );
       return "";
     }
     const astNodeMap = new Map<string, FlowASTNode>();
@@ -820,9 +818,7 @@ function App() {
       let astNode: any = null;
       let node = nodeMap.get(nodeId);
       if (!node) {
-        setAlertStatusSeverity("error");
-        setAlertStatusMessage(`Error for node ${nodeId}: Unable to find node`);
-        setOpenAlertStatus(true);
+        showAlertStatus("error", `Unable to find node`);
         hasAnyError = true;
         return false;
       }
@@ -891,9 +887,8 @@ function App() {
               console.error(
                 `Error creating AST node for node ${id}: Invalid loop type`
               );
-              setAlertStatusSeverity("error");
-              setAlertStatusMessage(`Error for node ${id}: Invalid loop type`);
-              setOpenAlertStatus(true);
+              showAlertStatus("error", "Invalid loop type");
+              changeHasError(id, true);
               hasAnyError = true;
               return false;
             }
@@ -932,11 +927,8 @@ function App() {
                 console.error(
                   `Error creating AST node for node ${id}: Duplicate function name`
                 );
-                setAlertStatusSeverity("error");
-                setAlertStatusMessage(
-                  `Error for node ${id}: Duplicate function name detected`
-                );
-                setOpenAlertStatus(true);
+                showAlertStatus("error", "Duplicate function name detected");
+                changeHasError(id, true);
                 hasAnyError = true;
                 return false;
               }
@@ -956,11 +948,8 @@ function App() {
               console.error(
                 `Error creating AST node for node ${id}: Duplicate function name`
               );
-              setAlertStatusSeverity("error");
-              setAlertStatusMessage(
-                `Error for node ${id}: Duplicate function name detected`
-              );
-              setOpenAlertStatus(true);
+              showAlertStatus("error", "Duplicate function name detected");
+              changeHasError(id, true);
               hasAnyError = true;
               return false;
             }
@@ -973,9 +962,8 @@ function App() {
         }
       } catch (error: any) {
         console.error(`Error creating AST node for node ${id}:`, error);
-        setAlertStatusSeverity("error");
-        setAlertStatusMessage(`Error for node ${id}: ${error.message}`);
-        setOpenAlertStatus(true);
+        showAlertStatus("error", `${error.message}`);
+        changeHasError(id, true);
         hasAnyError = true;
         return false;
       }
@@ -1048,11 +1036,8 @@ function App() {
               console.error(
                 `Error creating AST node for node ${id}: Invalid parent origin edge ${parentOriginEdge}`
               );
-              setAlertStatusSeverity("error");
-              setAlertStatusMessage(
-                `Error for node ${id}: Unable to convert flow`
-              );
-              setOpenAlertStatus(true);
+              showAlertStatus("error", "Unable to convert flow");
+              changeHasError(id, true);
               hasAnyError = true;
               return false;
             }
@@ -1248,10 +1233,9 @@ function App() {
                   let code = convertFlowToCode();
                   setPythonCode(code);
                   if (code) {
-                    setOpenAlertStatus(true);
-                    setAlertStatusSeverity("success");
-                    setAlertStatusMessage(
-                      "Code successfully updated to the latest flow"
+                    showAlertStatus(
+                      "success",
+                      "Code successfully updated to the last flow"
                     );
                   }
                 }}
@@ -1272,9 +1256,8 @@ function App() {
             <Button
               onClick={() => {
                 // convertCodeToFlow();
-                setOpenAlertStatus(true);
-                setAlertStatusSeverity("info");
-                setAlertStatusMessage(
+                showAlertStatus(
+                  "info",
                   "Sorry! This feature is not yet implemented :("
                 );
                 onCloseCodeDialog();

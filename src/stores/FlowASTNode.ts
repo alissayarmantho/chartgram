@@ -80,11 +80,11 @@ export class AssignmentFlowNode extends FlowASTNode {
   validateExpression(): void {
     if (!isValidVariableFunctionName(this.varName)) {
       throw new Error(
-        `Invalid variable name '${this.varName}'. Variable names must be alphanumeric_ and does not start with numbers.`
+        `Invalid variable name '${this.varName}'. Variable names must be alphanumeric_ and does not start with numbers`
       );
     }
     if (this.expression === "") {
-      throw new Error("Empty assignment expression is not allowed.");
+      throw new Error("Empty assignment expression is not allowed");
     }
 
     // I'm allowing int/str type casting to go through here cuz input is always string :(
@@ -251,7 +251,7 @@ export class InputOutputFlowNode extends StatementFlowNode {
     this.varName = varName;
     if (!isValidVariableFunctionName(this.varName)) {
       throw new Error(
-        `Invalid variable name '${this.varName}'. Variable names must be alphanumeric_ and does not start with numbers.`
+        `Invalid variable name '${this.varName}'. Variable names must be alphanumeric_ and does not start with numbers`
       );
     }
   }
@@ -277,7 +277,7 @@ export class MiscellaneousStatementNode extends StatementFlowNode {
   }
   validateStatement(): void {
     if (this.statement === "") {
-      throw new Error("Empty statement is not allowed.");
+      throw new Error("Empty statement is not allowed");
     }
     // Patterns to match the list and dictionary operations
     const listInsertPattern = /^[a-zA-Z0-9_]+\.append\([^)]+\)$/;
@@ -303,7 +303,7 @@ export class MiscellaneousStatementNode extends StatementFlowNode {
       )
     ) {
       throw new Error(
-        `Invalid statement: '${this.statement}'. Does not match any supported list or dictionary operation.`
+        `Invalid statement: '${this.statement}'. Does not match any supported list / dictionary operations or function call`
       );
     }
     if (functionCallPattern.test(this.statement)) {
@@ -313,7 +313,7 @@ export class MiscellaneousStatementNode extends StatementFlowNode {
         const args = match[2];
         if (!isValidVariableFunctionName(functionName)) {
           throw new Error(
-            `Invalid function name '${functionName}'. Function names must be alphanumeric_ and does not start with numbers.`
+            `Invalid function name '${functionName}'. Function names must be alphanumeric_ and does not start with numbers`
           );
         }
         const argsList = args.split(",");
@@ -321,7 +321,7 @@ export class MiscellaneousStatementNode extends StatementFlowNode {
           argsList.forEach((arg: string) => {
             if (!isValidArgument(arg.trim())) {
               throw new Error(
-                `Invalid argument '${arg}'. Function arguments must be primitives / in the form of variables which are alphanumeric_ and does not start with numbers.`
+                `Invalid argument '${arg}'. Function arguments must be primitives / in the form of variables which are alphanumeric_ and does not start with numbers`
               );
             }
           });
@@ -355,7 +355,7 @@ export class FunctionFlowNode extends FlowASTNode {
     }
     if (!isValidVariableFunctionName(this.functionName)) {
       throw new Error(
-        `Invalid function name '${this.functionName}'. Function names must be alphanumeric_ and does not start with numbers.`
+        `Invalid function name '${this.functionName}'. Function names must be alphanumeric_ and does not start with numbers`
       );
     }
     this.body = body;
@@ -376,7 +376,7 @@ export class FunctionFlowNode extends FlowASTNode {
     this.argumentExpressions.forEach((arg: string) => {
       if (!isValidVariableFunctionName(arg)) {
         throw new Error(
-          `Invalid argument '${arg}'. Function arguments must be alphanumeric_ and does not start with numbers.`
+          `Invalid argument '${arg}'. Function arguments must be alphanumeric_ and does not start with numbers`
         );
       }
     });
@@ -385,7 +385,7 @@ export class FunctionFlowNode extends FlowASTNode {
   validateReturnExpression(): void {
     if (!isValidArgument(this.returnExpression)) {
       throw new Error(
-        `Invalid return value '${this.returnExpression}'. Return value must be primitives / in the forms of variables which are alphanumeric_ and does not start with numbers.`
+        `Invalid return value '${this.returnExpression}'. Return value must be primitives / in the forms of variables which are alphanumeric_ and does not start with numbers`
       );
     }
   }

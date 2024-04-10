@@ -15,7 +15,10 @@ export const CircleEndNode: React.FC<NodeProps<NodeData>> = ({
   const isValidConnection = useStore((state) => state.isValidConnection);
   // const onAdd = useStore((state) => state.addNode);
   return (
-    <div className="circle-end-node">
+    <div
+      className="circle-end-node"
+      style={{ borderColor: data.hasError ? "red" : undefined }}
+    >
       <Handle
         type="target"
         position={Position.Top}
