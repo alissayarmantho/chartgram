@@ -191,9 +191,9 @@ function App() {
     );
   }
 
-  function runNextLine() {
-    // runPython("next");
-  }
+  const runNextLine = () => {
+    return;
+  };
 
   const onOpenRunFlow = () => {
     setOpenRunFlow(true);
@@ -210,7 +210,6 @@ function App() {
         setOpenCodeDialog(true);
       }
     } else {
-      // convertCodeToFlow();
       setOpenCodeDialog(true);
     }
   };
@@ -816,6 +815,7 @@ function App() {
     });
 
     let hasAnyError: boolean = false;
+    let hasSeenFunctionNames: Set<string> = new Set();
     visitOrder.every((nodeId) => {
       let astNode: any = null;
       let node = nodeMap.get(nodeId);
@@ -842,11 +842,7 @@ function App() {
                 );
                 astNode.addStatement(assignmentAstNode);
               } else {
-                const miscAstNode = new MiscellaneousStatementNode(
-                  0,
-                  id,
-                  data.label
-                );
+                const miscAstNode = new MiscellaneousStatementNode(0, id, line);
                 astNode.addStatement(miscAstNode);
               }
             });
@@ -933,6 +929,19 @@ function App() {
                 argumentExpressions,
                 endFunctionNode?.data.label ?? ""
               );
+              if (hasSeenFunctionNames.has(astNode.functionName)) {
+                console.error(
+                  `Error creating AST node for node ${id}: Duplicate function name`
+                );
+                setAlertStatusSeverity("error");
+                setAlertStatusMessage(
+                  `Error for node ${id}: Duplicate function name detected`
+                );
+                setOpenAlertStatus(true);
+                hasAnyError = true;
+                return false;
+              }
+              hasSeenFunctionNames.add(astNode.functionName);
             }
             break;
           case "circle_start":
@@ -944,6 +953,19 @@ function App() {
               [],
               ""
             );
+            if (hasSeenFunctionNames.has(astNode.functionName)) {
+              console.error(
+                `Error creating AST node for node ${id}: Duplicate function name`
+              );
+              setAlertStatusSeverity("error");
+              setAlertStatusMessage(
+                `Error for node ${id}: Duplicate function name detected`
+              );
+              setOpenAlertStatus(true);
+              hasAnyError = true;
+              return false;
+            }
+            hasSeenFunctionNames.add(astNode.functionName);
             break;
           case "circle_end":
           case "diamond_end":
@@ -1251,6 +1273,11 @@ function App() {
             <Button
               onClick={() => {
                 // convertCodeToFlow();
+                setOpenAlertStatus(true);
+                setAlertStatusSeverity("info");
+                setAlertStatusMessage(
+                  "Sorry! This feature is not yet implemented :("
+                );
                 onCloseCodeDialog();
               }}
               variant="contained"

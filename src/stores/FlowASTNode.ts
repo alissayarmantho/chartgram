@@ -320,13 +320,15 @@ export class MiscellaneousStatementNode extends StatementFlowNode {
           );
         }
         const argsList = args.split(",");
-        argsList.forEach((arg: string) => {
-          if (!isValidVariableFunctionName(arg.trim())) {
-            throw new Error(
-              `Invalid argument '${arg}'. Function arguments must be alphanumeric_ and does not start with numbers.`
-            );
-          }
-        });
+        if (!(argsList.length === 1 && argsList[0] === "")) {
+          argsList.forEach((arg: string) => {
+            if (!isValidVariableFunctionName(arg.trim())) {
+              throw new Error(
+                `Invalid argument '${arg}'. Function arguments must be alphanumeric_ and does not start with numbers.`
+              );
+            }
+          });
+        }
       }
     }
   }
