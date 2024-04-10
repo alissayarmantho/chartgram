@@ -869,7 +869,6 @@ function App() {
             }
             break;
           case "roundedrectangle":
-            // Loops (while/for)
             let loopType: LoopType | null = null;
             let loopCondition = data.label;
             if (data.label.startsWith("while ")) {

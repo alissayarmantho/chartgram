@@ -1,6 +1,6 @@
 import jsep from "jsep";
 import object from "@jsep-plugin/object";
-import { isValidVariableFunctionName } from "./utils";
+import { isValidArgument, isValidVariableFunctionName } from "./utils";
 jsep.plugins.register(object);
 
 export enum LoopType {
@@ -95,7 +95,6 @@ export class AssignmentFlowNode extends FlowASTNode {
     if (!typeCastingPattern.test(this.expression)) {
       try {
         const parsedExpression = jsep(this.expression);
-        console.log(parsedExpression);
         this.parsedExpression = parsedExpression;
       } catch (error: any) {
         console.error(
@@ -168,7 +167,6 @@ export class IfFlowNode extends StatementFlowNode {
     try {
       const parsedExpression = jsep(this.conditionExpression);
       this.parsedCondition = parsedExpression;
-      console.log(parsedExpression);
     } catch (error: any) {
       console.error(
         `Syntax error in expression '${this.conditionExpression}':`,
@@ -228,7 +226,6 @@ export class LoopFlowNode extends StatementFlowNode {
     try {
       const parsedExpression = jsep(this.iteration);
       this.parsedCondition = parsedExpression;
-      console.log(parsedExpression);
     } catch (error: any) {
       console.error(
         `Syntax error in condition '${this.iteration}':`,
@@ -322,9 +319,9 @@ export class MiscellaneousStatementNode extends StatementFlowNode {
         const argsList = args.split(",");
         if (!(argsList.length === 1 && argsList[0] === "")) {
           argsList.forEach((arg: string) => {
-            if (!isValidVariableFunctionName(arg.trim())) {
+            if (!isValidArgument(arg.trim())) {
               throw new Error(
-                `Invalid argument '${arg}'. Function arguments must be alphanumeric_ and does not start with numbers.`
+                `Invalid argument '${arg}'. Function arguments must be primitives / in the form of variables which are alphanumeric_ and does not start with numbers.`
               );
             }
           });
@@ -386,9 +383,9 @@ export class FunctionFlowNode extends FlowASTNode {
   }
 
   validateReturnExpression(): void {
-    if (!isValidVariableFunctionName(this.returnExpression)) {
+    if (!isValidArgument(this.returnExpression)) {
       throw new Error(
-        `Invalid return expression '${this.returnExpression}'. Return expressions must be alphanumeric_ and does not start with numbers.`
+        `Invalid return value '${this.returnExpression}'. Return value must be primitives / in the forms of variables which are alphanumeric_ and does not start with numbers.`
       );
     }
   }

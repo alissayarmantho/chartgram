@@ -52,7 +52,7 @@ export const ParallelogramNode: React.FC<NodeProps<NodeData>> = ({
               id={id}
               className="form__field nodrag"
               value={data.label}
-              placeholder="Insert Text Here"
+              placeholder="some_variable"
               onChange={(evt: React.ChangeEvent<HTMLInputElement>) =>
                 onChange(id, evt.target.value)
               }

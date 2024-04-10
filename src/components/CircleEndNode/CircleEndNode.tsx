@@ -32,7 +32,7 @@ export const CircleEndNode: React.FC<NodeProps<NodeData>> = ({
           style={{ width: "170px", resize: "none" }}
           className="form__field nodrag"
           value={data.label}
-          placeholder="Insert Text Here"
+          placeholder="0"
           disabled
         />
       </div>

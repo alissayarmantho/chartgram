@@ -76,7 +76,9 @@ export const CircleNode: React.FC<NodeProps<NodeData>> = ({
           style={{ width: "170px", resize: "none" }}
           className="form__field nodrag"
           value={data.label}
-          placeholder="Insert Text Here"
+          placeholder={
+            data.functionType === "start" ? "function_name" : "some_variable"
+          }
           onChange={(evt: React.ChangeEvent<HTMLTextAreaElement>) =>
             onChange(id, evt.target.value)
           }

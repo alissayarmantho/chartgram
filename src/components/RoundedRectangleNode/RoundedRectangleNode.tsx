@@ -32,7 +32,7 @@ export const RoundedRectangleNode: React.FC<NodeProps<NodeData>> = ({
           id={id}
           className="form__field nodrag"
           value={data.label}
-          placeholder="Insert Text Here"
+          placeholder="for i in range(10)"
           onChange={(evt: React.ChangeEvent<HTMLTextAreaElement>) =>
             onChange(id, evt.target.value)
           }

@@ -37,7 +37,7 @@ export const RectangleNode: React.FC<NodeProps<NodeData>> = ({
           id={id}
           className="form__field nodrag"
           value={data.label}
-          placeholder="Insert Text Here"
+          placeholder="some_variable = 1"
           onChange={(evt: React.ChangeEvent<HTMLTextAreaElement>) =>
             onChange(id, evt.target.value)
           }
