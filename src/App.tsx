@@ -153,13 +153,13 @@ function App() {
 
   useEffect(() => {
     if (!isRunning || isAwaitingInput) {
-      setRunOutput(stdout);
+      setRunOutput(stdout.trim());
     }
   }, [stdout, isRunning, isAwaitingInput]);
 
   useEffect(() => {
     if (!isRunning) {
-      setRunOutputErr(stderr);
+      setRunOutputErr(stderr.trim());
     }
   }, [stderr, isRunning]);
 
@@ -1119,7 +1119,7 @@ function App() {
         <RunFlow
           isOpen={openRunFlow}
           onClose={onCloseRunFlow}
-          textAreaValue={runOutput}
+          runOutput={runOutput}
           inputValue={runInput}
           onChangeInput={(value: string) => setRunInput(value)}
           sendInput={() => {

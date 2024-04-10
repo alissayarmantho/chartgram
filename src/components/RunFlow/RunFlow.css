@@ -2,18 +2,32 @@
   position: absolute;
   top: 100px;
   right: 280px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
   padding: 50px;
   background-color: #d2e0ff;
   border-radius: 20px;
   width: 550px;
+  max-height: 700px;
   margin-top: 5px;
 }
 
+.output-div-wrapper {
+  width: 450px;
+  display: block;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  max-height: 550px;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+  overflow: auto;
+}
+
+.output-div-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
 .output {
+  width: inherit;
   font-weight: 500;
   border-radius: 20px;
   padding: 20px;

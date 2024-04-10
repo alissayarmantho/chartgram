@@ -21,7 +21,7 @@ const Root = styled("div")(({ theme }) => ({
 const RunFlow = ({
   isOpen,
   onClose,
-  textAreaValue,
+  runOutput,
   onChangeInput,
   inputValue,
   sendInput,
@@ -42,7 +42,10 @@ const RunFlow = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5 }}
-          style={{ position: "absolute", zIndex: 5 }}
+          style={{
+            position: "absolute",
+            zIndex: 5,
+          }}
           className="run-flow"
         >
           <IconButton
@@ -63,14 +66,15 @@ const RunFlow = ({
                 Run Flow
                 <Tooltip title="Run flow to the end" placement="top">
                   <IconButton
+                    size="large"
                     type="button"
-                    sx={{ p: "10px", marginLeft: "5px" }}
+                    sx={{ p: "10px", marginLeft: "5px", color: "green" }}
                     aria-label="Run All Flow"
                     onClick={runFlow}
                     disabled={
                       isRunning ||
                       isAwaitingInput ||
-                      textAreaValue === "Running Flow..."
+                      runOutput === "Running Flow..."
                     }
                   >
                     <SkipNext />
@@ -85,6 +89,7 @@ const RunFlow = ({
                     placement="top"
                   >
                     <IconButton
+                      size="large"
                       type="button"
                       sx={{ p: "10px", marginLeft: "5px" }}
                       aria-label="Step Next"
@@ -101,8 +106,9 @@ const RunFlow = ({
                 */}{" "}
                 <Tooltip title="Stop execution" placement="top">
                   <IconButton
+                    size="large"
                     type="button"
-                    sx={{ p: "10px", marginLeft: "5px" }}
+                    sx={{ p: "10px", marginLeft: "5px", color: "red" }}
                     aria-label="Step Next"
                     onClick={() => stopExecution()}
                     disabled={!isRunning}
@@ -112,73 +118,84 @@ const RunFlow = ({
                 </Tooltip>
               </div>
               <Divider />
-              {runOutputErr ? (
-                <TextareaAutosize
-                  id="run-flow-err-output"
-                  maxRows={15}
-                  className="output nodrag"
-                  value={runOutputErr}
-                  disabled={true}
-                  style={{ resize: "none", color: "red" }}
-                  placeholder="Output Here"
-                />
-              ) : (
-                <TextareaAutosize
-                  id="run-flow-output"
-                  maxRows={15}
-                  className="output nodrag"
-                  value={textAreaValue}
-                  disabled={true}
-                  style={{ resize: "none" }}
-                  placeholder="Output Here"
-                />
-              )}
-              {isAwaitingInput && (
-                <div>
-                  <div
-                    style={{ fontWeight: 500, width: "400px", padding: "10px" }}
-                  >
-                    {prompt}
-                  </div>
-                  <div
+              <div className="output-div-wrapper">
+                {runOutputErr ? (
+                  <TextareaAutosize
+                    id="run-flow-err-output"
+                    maxRows={15}
+                    className="output nodrag"
+                    value={runOutputErr}
+                    disabled={true}
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
+                      resize: "none",
+                      color: "red",
+                      backgroundColor: "#FFDFE1AB",
+                      opacity: 0.8,
                     }}
-                  >
-                    <TextareaAutosize
-                      id="run-flow-input"
-                      className="input-textbox nodrag"
-                      maxRows={1}
-                      value={inputValue}
+                    placeholder="Output Here"
+                  />
+                ) : (
+                  <TextareaAutosize
+                    id="run-flow-output"
+                    maxRows={15}
+                    className="output nodrag"
+                    value={undefined}
+                    disabled={true}
+                    style={{ resize: "none" }}
+                    placeholder="Output Here"
+                  />
+                )}
+                {isAwaitingInput && (
+                  <div>
+                    <div
                       style={{
-                        resize: "none",
+                        fontWeight: 500,
                         width: "400px",
-                        marginRight: "10px",
+                        padding: "10px",
                       }}
-                      onKeyDown={(e) => e.key === "Enter" && sendInput()}
-                      onChange={(evt: React.ChangeEvent<HTMLTextAreaElement>) =>
-                        onChangeInput(evt.target.value)
-                      }
-                      placeholder="Input Here"
-                    />
-                    <IconButton
-                      type="button"
-                      sx={{ p: "20px" }}
-                      onClick={(
-                        e: React.MouseEvent<HTMLButtonElement, MouseEvent>
-                      ) => {
-                        e.preventDefault();
-                        sendInput();
-                      }}
-                      aria-label="Send"
                     >
-                      <Send />
-                    </IconButton>
+                      {prompt}
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <TextareaAutosize
+                        id="run-flow-input"
+                        className="input-textbox nodrag"
+                        maxRows={1}
+                        value={inputValue}
+                        style={{
+                          resize: "none",
+                          width: "400px",
+                          marginRight: "10px",
+                        }}
+                        onKeyDown={(e) => e.key === "Enter" && sendInput()}
+                        onChange={(
+                          evt: React.ChangeEvent<HTMLTextAreaElement>
+                        ) => onChangeInput(evt.target.value)}
+                        placeholder="Input Here"
+                      />
+                      <IconButton
+                        type="button"
+                        sx={{ p: "20px" }}
+                        onClick={(
+                          e: React.MouseEvent<HTMLButtonElement, MouseEvent>
+                        ) => {
+                          e.preventDefault();
+                          sendInput();
+                        }}
+                        aria-label="Send"
+                      >
+                        <Send />
+                      </IconButton>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </Root>
           ) : (
             <Root>Python is not ready yet</Root>
