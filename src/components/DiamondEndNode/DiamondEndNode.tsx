@@ -24,11 +24,7 @@ const DiamondEndNode: React.FC<NodeProps<NodeData>> = ({
       <div className="diamond-end">
         <div className="unskew-diamond-end">
           <div className="form__group">
-            <label
-              className="form__label"
-              style={{ color: "white" }}
-              htmlFor={id}
-            >
+            <label className="form__label" style={{ color: "white" }}>
               End
             </label>
           </div>

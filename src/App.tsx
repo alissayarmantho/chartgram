@@ -9,7 +9,12 @@ import ReactFlow, {
   Edge,
   MarkerType,
 } from "reactflow";
-import Editor from "@monaco-editor/react";
+import AceEditor from "react-ace";
+
+import "ace-builds/src-noconflict/mode-python";
+import "ace-builds/src-noconflict/theme-xcode";
+import "ace-builds/src-noconflict/ext-language_tools";
+
 import "./Flow.css";
 import "reactflow/dist/style.css";
 import Button from "@mui/material/Button";
@@ -52,6 +57,7 @@ import {
   MiscellaneousStatementNode,
   StatementListFlowNode,
 } from "./stores/FlowASTNode";
+import { Ace } from "ace-builds";
 
 const rfStyle = {
   backgroundColor: "#B8CEFF",
@@ -114,6 +120,7 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(function Alert(
 function App() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [runOutput, setRunOutput] = useState("");
+  const [runInput, setRunInput] = useState("");
   const [openAlertStatus, setOpenAlertStatus] = useState(false);
   const [alertStatusMessage, setAlertStatusMessage] = useState("");
   const [alertStatusSeverity, setAlertStatusSeverity] = useState<
@@ -134,11 +141,11 @@ function App() {
     setOpenRunFlow(false);
   };
   const onOpenCodeDialog = (convertToPython: boolean) => {
-    setOpenCodeDialog(true);
     if (convertToPython) {
       convertFlowToCode();
     } else {
       // convertCodeToFlow();
+      setOpenCodeDialog(true);
     }
   };
   const onCloseCodeDialog = () => {
@@ -327,6 +334,10 @@ function App() {
       setAlertStatusMessage("Flow is valid");
     }
     setOpenAlertStatus(true);
+  };
+  const editorOnLoad = (editor: Ace.Editor) => {
+    editor.renderer.setScrollMargin(10, 10, 0, 0);
+    editor.moveCursorTo(0, 0);
   };
   function createNode(
     type: string,
@@ -709,6 +720,7 @@ function App() {
       );
     });
 
+    let hasAnyError: boolean = false;
     nodes.every((node) => {
       let astNode: any = null;
       const { id, type, data } = node;
@@ -784,6 +796,7 @@ function App() {
               setAlertStatusSeverity("error");
               setAlertStatusMessage(`Error for node ${id}: Invalid loop type`);
               setOpenAlertStatus(true);
+              hasAnyError = true;
               return false;
             }
             break;
@@ -839,6 +852,7 @@ function App() {
         setAlertStatusSeverity("error");
         setAlertStatusMessage(`Error for node ${id}: ${error.message}`);
         setOpenAlertStatus(true);
+        hasAnyError = true;
         return false;
       }
 
@@ -915,6 +929,7 @@ function App() {
                 `Error for node ${id}: Unable to convert flow`
               );
               setOpenAlertStatus(true);
+              hasAnyError = true;
               return false;
             }
             if (astNode instanceof StatementListFlowNode) {
@@ -932,12 +947,15 @@ function App() {
       return true;
     });
 
+    if (hasAnyError) return;
+
     let code = "";
     astRootNodes.forEach((rootNode: FlowASTNode) => {
       code += rootNode.toCode();
     });
 
     setPythonCode(code);
+    setOpenCodeDialog(true);
   };
 
   const [isOpen, setIsOpen] = React.useState(false);
@@ -993,6 +1011,13 @@ function App() {
           isOpen={openRunFlow}
           onClose={onCloseRunFlow}
           textAreaValue={runOutput}
+          inputValue={runInput}
+          onChangeInput={(value: string) => setRunInput(value)}
+          sendInput={() => {
+            console.log(runInput);
+          }}
+          runFlow={() => {}}
+          runNextLine={() => {}}
         />
         <Snackbar
           anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
@@ -1054,13 +1079,29 @@ function App() {
             <CloseIcon />
           </IconButton>
           <DialogContent dividers>
-            <Editor
-              options={{ readOnly: false, fontSize: 16 }}
-              height="70vh"
-              language="python"
-              theme="vs-dark"
-              value={pythonCode}
+            <AceEditor
+              placeholder="This will be where you can type your python code. Click copy to copy the code to your clipboard, Convert to Flow to convert the code to flowchart, and the update button to sync your python code with the flowchart"
+              mode="python"
+              theme="xcode"
+              name="python-code"
+              onLoad={editorOnLoad}
               onChange={(value) => setPythonCode(value ?? "")}
+              fontSize={14}
+              lineHeight={19}
+              height="70vh"
+              width="100%"
+              showPrintMargin={true}
+              maxLines={Infinity}
+              showGutter={true}
+              highlightActiveLine={true}
+              value={pythonCode}
+              setOptions={{
+                enableBasicAutocompletion: true,
+                enableLiveAutocompletion: true,
+                enableSnippets: true,
+                showLineNumbers: true,
+                tabSize: 2,
+              }}
             />
           </DialogContent>
           <DialogActions>
@@ -1080,7 +1121,10 @@ function App() {
               Copy
             </Button>
             <Button
-              onClick={() => onCloseCodeDialog()}
+              onClick={() => {
+                // convertCodeToFlow();
+                onCloseCodeDialog();
+              }}
               variant="contained"
               style={{
                 backgroundColor: "#0056b3",
