@@ -543,9 +543,19 @@ const useStore = createWithEqualityFn<RFState>(
     ],
     edges: [],
     setAllNodesAndEdges: (nodes: Node<NodeData>[], edges: Edge[]) => {
+      let lastId: number = get().lastNodeId;
+      nodes.forEach((node) => {
+        let nodeId = parseInt(node.id);
+        if (!isNaN(nodeId)) {
+          if (parseInt(node.id) > lastId) {
+            lastId = nodeId;
+          }
+        }
+      });
       set({
         nodes: nodes,
         edges: edges,
+        lastNodeId: lastId + 1,
       });
     },
     lastNodeId: 0,
