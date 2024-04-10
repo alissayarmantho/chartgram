@@ -18,7 +18,10 @@ export const RoundedRectangleNode: React.FC<NodeProps<NodeData>> = ({
   const isValidConnection = useStore((state) => state.isValidConnection);
   // const onAdd = useStore((state) => state.addNode);
   return (
-    <div className="rounded-rectangle-node">
+    <div
+      className="rounded-rectangle-node"
+      style={{ borderColor: data.hasError ? "red" : undefined }}
+    >
       <NodeToolbar>
         <button className="icon-button" onClick={() => onDelete(id)}>
           <DeleteIcon />

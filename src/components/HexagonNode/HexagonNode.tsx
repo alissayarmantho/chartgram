@@ -25,7 +25,10 @@ export const HexagonNode: React.FC<NodeProps<NodeData>> = ({
           <DeleteIcon />
         </button>
       </NodeToolbar>
-      <div className="hexagon">
+      <div
+        className="hexagon"
+        style={{ borderColor: data.hasError ? "red" : undefined }}
+      >
         <div className="form__group">
           <label className="form__label" htmlFor={id} style={{ zIndex: 1 }}>
             Loops
@@ -35,7 +38,7 @@ export const HexagonNode: React.FC<NodeProps<NodeData>> = ({
             id={id}
             className="form__field nodrag"
             value={data.label}
-            placeholder="Insert Text Here"
+            placeholder="while i < 10"
             onChange={(evt: React.ChangeEvent<HTMLInputElement>) =>
               onChange(id, evt.target.value)
             }

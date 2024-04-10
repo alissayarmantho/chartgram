@@ -15,7 +15,10 @@ export const CircleStartNode: React.FC<NodeProps<NodeData>> = ({
   const isValidConnection = useStore((state) => state.isValidConnection);
   // const onAdd = useStore((state) => state.addNode);
   return (
-    <div className="circle-start-node">
+    <div
+      className="circle-start-node"
+      style={{ borderColor: data.hasError ? "red" : undefined }}
+    >
       <div className="form__group">
         <label className="form__label" htmlFor={id}>
           Function

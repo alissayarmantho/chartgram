@@ -21,7 +21,10 @@ const DiamondEndNode: React.FC<NodeProps<NodeData>> = ({
           <DeleteIcon />
         </button>
       </NodeToolbar>
-      <div className="diamond-end">
+      <div
+        className="diamond-end"
+        style={{ borderColor: data.hasError ? "red" : undefined }}
+      >
         <div className="unskew-diamond-end">
           <div className="form__group">
             <label className="form__label" style={{ color: "white" }}>

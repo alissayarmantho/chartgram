@@ -35,7 +35,10 @@ export const CircleNode: React.FC<NodeProps<NodeData>> = ({
     };
   };
   return (
-    <div className="circle-node">
+    <div
+      className="circle-node"
+      style={{ borderColor: data.hasError ? "red" : undefined }}
+    >
       <NodeToolbar>
         <button
           className="icon-button"
