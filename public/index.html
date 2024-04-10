@@ -11,6 +11,19 @@
       href="https://fonts.googleapis.com/icon?family=Material+Icons"
       rel="stylesheet"
     />
+    <script>
+      navigator.serviceWorker
+        .register("/react-py-sw.js")
+        .then((registration) =>
+          console.log(
+            "Service Worker registration successful with scope: ",
+            registration.scope
+          )
+        )
+        .catch((err) =>
+          console.log("Service Worker registration failed: ", err)
+        );
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
     <meta name="description" content="Flowchart Programming App" />
