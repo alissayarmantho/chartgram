@@ -98,6 +98,7 @@ const RunFlow = ({
                     placement="top"
                   >
                     <IconButton
+                      size="large"
                       type="button"
                       sx={{ p: "10px", marginLeft: "5px" }}
                       aria-label="Step Next"
