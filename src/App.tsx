@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useRef, useState, useEffect } from "react";
 import ReactFlow, {
   Node,
   MiniMap,
@@ -10,12 +10,6 @@ import ReactFlow, {
   MarkerType,
 } from "reactflow";
 import AceEditor from "react-ace";
-
-import "ace-builds/src-noconflict/mode-python";
-import "ace-builds/src-noconflict/theme-xcode";
-import "ace-builds/src-noconflict/ext-language_tools";
-import "ace-builds/src-noconflict/snippets/python";
-import "ace-builds/src-min-noconflict/ext-searchbox";
 import "./Flow.css";
 import "reactflow/dist/style.css";
 import Button from "@mui/material/Button";
@@ -59,6 +53,12 @@ import {
   StatementListFlowNode,
 } from "./stores/FlowASTNode";
 import { Ace } from "ace-builds";
+import { usePython } from "react-py";
+import "ace-builds/src-noconflict/mode-python";
+import "ace-builds/src-noconflict/theme-xcode";
+import "ace-builds/src-noconflict/ext-language_tools";
+import "ace-builds/src-noconflict/snippets/python";
+import "ace-builds/src-min-noconflict/ext-searchbox";
 
 const rfStyle = {
   backgroundColor: "#B8CEFF",
@@ -121,6 +121,7 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(function Alert(
 function App() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [runOutput, setRunOutput] = useState("");
+  const [runOutputErr, setRunOutputErr] = useState("");
   const [runInput, setRunInput] = useState("");
   const [openAlertStatus, setOpenAlertStatus] = useState(false);
   const [alertStatusMessage, setAlertStatusMessage] = useState("");
@@ -133,6 +134,66 @@ function App() {
   const [openCodeDialog, setOpenCodeDialog] = React.useState(false);
   const [pythonCode, setPythonCode] = React.useState("");
   const [openRunFlow, setOpenRunFlow] = React.useState(false);
+  const [pythonCodeExecutionTimeout, setPythonCodeExecutionTimeout] =
+    useState<any>(null);
+  const {
+    runPython,
+    stdout,
+    stderr,
+    isLoading,
+    isRunning,
+    isReady,
+    isAwaitingInput,
+    prompt,
+    sendInput,
+    interruptExecution,
+  } = usePython();
+
+  useEffect(() => {
+    if (!isRunning || isAwaitingInput) {
+      setRunOutput(stdout);
+    }
+  }, [stdout, isRunning, isAwaitingInput]);
+
+  useEffect(() => {
+    if (!isRunning) {
+      setRunOutputErr(stderr);
+    }
+  }, [stderr, isRunning]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setRunInput("");
+      setRunOutput("");
+      setRunOutputErr("");
+    }
+  }, [isLoading]);
+
+  async function runFlow() {
+    let code = convertFlowToCode();
+    if (code === "") {
+      setRunOutputErr("Failed to convert flow to code");
+      return;
+    } else {
+      setRunOutputErr("");
+      setRunOutput("Running Flow...");
+    }
+    setPythonCode(code);
+    console.log("Running code: \n", code);
+    if (pythonCodeExecutionTimeout) {
+      clearTimeout(pythonCodeExecutionTimeout);
+    }
+
+    setPythonCodeExecutionTimeout(
+      setTimeout(() => {
+        runPython(code);
+      }, 1000)
+    );
+  }
+
+  function runNextLine() {
+    // runPython("next");
+  }
 
   const onOpenRunFlow = () => {
     setOpenRunFlow(true);
@@ -143,7 +204,11 @@ function App() {
   };
   const onOpenCodeDialog = (convertToPython: boolean) => {
     if (convertToPython) {
-      convertFlowToCode();
+      let code = convertFlowToCode();
+      setPythonCode(code);
+      if (code !== "") {
+        setOpenCodeDialog(true);
+      }
     } else {
       // convertCodeToFlow();
       setOpenCodeDialog(true);
@@ -168,7 +233,6 @@ function App() {
     onConnect,
     addNode,
     validateFlow,
-    pairedEndNodes,
     pairedStartNodes,
   } = useStore(selector);
 
@@ -684,13 +748,13 @@ function App() {
     );
   }
 
-  const convertFlowToCode = () => {
+  const convertFlowToCode = (): string => {
     let validFlowResult = validateFlow();
     if (!validFlowResult.isValid) {
       setAlertStatusSeverity("error");
       setAlertStatusMessage(validFlowResult.validationMessage ?? "");
       setOpenAlertStatus(!validFlowResult.isValid);
-      return;
+      return "";
     }
     const astNodeMap = new Map<string, FlowASTNode>();
     const parentEnclosureMap = new Map<string, string[]>();
@@ -948,15 +1012,15 @@ function App() {
       return true;
     });
 
-    if (hasAnyError) return;
+    if (hasAnyError) return "";
 
     let code = "";
     astRootNodes.forEach((rootNode: FlowASTNode) => {
       code += rootNode.toCode();
     });
 
-    setPythonCode(code);
-    setOpenCodeDialog(true);
+    code += "main()\n"; // Call the main function at the end of everything
+    return code;
   };
 
   const [isOpen, setIsOpen] = React.useState(false);
@@ -1015,10 +1079,22 @@ function App() {
           inputValue={runInput}
           onChangeInput={(value: string) => setRunInput(value)}
           sendInput={() => {
-            console.log(runInput);
+            sendInput(runInput);
+            setRunInput("");
           }}
-          runFlow={() => {}}
-          runNextLine={() => {}}
+          runFlow={runFlow}
+          isRunning={isRunning}
+          runOutputErr={runOutputErr}
+          runNextLine={runNextLine}
+          isReady={isReady}
+          isAwaitingInput={isAwaitingInput}
+          prompt={prompt}
+          stopExecution={() => {
+            interruptExecution();
+            if (pythonCodeExecutionTimeout) {
+              clearTimeout(pythonCodeExecutionTimeout);
+            }
+          }}
         />
         <Snackbar
           anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
@@ -1107,7 +1183,13 @@ function App() {
           </DialogContent>
           <DialogActions>
             <Tooltip title="Update the python code to match your current flow">
-              <IconButton aria-label="update" onClick={convertFlowToCode}>
+              <IconButton
+                aria-label="update"
+                onClick={() => {
+                  let code = convertFlowToCode();
+                  setPythonCode(code);
+                }}
+              >
                 <Update />
               </IconButton>
             </Tooltip>

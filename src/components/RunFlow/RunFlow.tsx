@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Divider from "@mui/material/Divider";
 import { styled } from "@mui/material/styles";
 import { TextareaAutosize } from "@mui/base/TextareaAutosize";
-import { Redo, Send, SkipNext } from "@mui/icons-material";
+import { Redo, Send, SkipNext, Stop } from "@mui/icons-material";
 import Tooltip from "@mui/material/Tooltip";
 
 const Root = styled("div")(({ theme }) => ({
@@ -27,6 +27,12 @@ const RunFlow = ({
   sendInput,
   runFlow,
   runNextLine,
+  stopExecution,
+  isRunning,
+  isReady,
+  runOutputErr,
+  isAwaitingInput,
+  prompt,
 }: any) => {
   return (
     <AnimatePresence>
@@ -51,76 +57,132 @@ const RunFlow = ({
           >
             <CloseIcon />
           </IconButton>
-          <Root>
-            <div style={{ display: "flex", alignItems: "center" }}>
-              Run Flow
-              <Tooltip title="Run flow to the end" placement="top">
-                <IconButton
-                  type="button"
-                  sx={{ p: "10px", marginLeft: "5px" }}
-                  aria-label="Run All Flow"
-                  onClick={runFlow}
-                >
-                  <SkipNext />
-                </IconButton>
-              </Tooltip>
-              <Tooltip
-                title="Step to run next flowchart element"
-                placement="top"
-              >
-                <IconButton
-                  type="button"
-                  sx={{ p: "10px", marginLeft: "5px" }}
-                  aria-label="Step Next"
-                  onClick={runNextLine}
-                >
-                  <Redo />
-                </IconButton>
-              </Tooltip>
-            </div>
-            <Divider />
-            <TextareaAutosize
-              id="run-flow-output"
-              maxRows={15}
-              className="output nodrag"
-              value={textAreaValue}
-              disabled={true}
-              style={{ resize: "none" }}
-              placeholder="Output Here"
-            />
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <TextareaAutosize
-                id="run-flow-input"
-                className="input-textbox nodrag"
-                maxRows={1}
-                value={inputValue}
-                style={{
-                  resize: "none",
-                  width: "400px",
-                  marginRight: "10px",
-                }}
-                onKeyDown={(e) => e.key === "Enter" && sendInput()}
-                onChange={(evt: React.ChangeEvent<HTMLTextAreaElement>) =>
-                  onChangeInput(evt.target.value)
-                }
-                placeholder="Input Here"
-              />
-              <IconButton
-                type="button"
-                sx={{ p: "20px" }}
-                onClick={sendInput}
-                aria-label="Send"
-              >
-                <Send />
-              </IconButton>
-            </div>
-          </Root>
+          {isReady ? (
+            <Root>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                Run Flow
+                <Tooltip title="Run flow to the end" placement="top">
+                  <IconButton
+                    type="button"
+                    sx={{ p: "10px", marginLeft: "5px" }}
+                    aria-label="Run All Flow"
+                    onClick={runFlow}
+                    disabled={
+                      isRunning ||
+                      isAwaitingInput ||
+                      textAreaValue === "Running Flow..."
+                    }
+                  >
+                    <SkipNext />
+                  </IconButton>
+                </Tooltip>
+                {/*
+                TODO: Implement step next, currently it is not quite possible to do it with react-py the python runner im using
+                since it has a repl functionality, but like, I cannot step into the while loop step by step which is what is needed
+                probably will have to think more about how to actually implement it
+                  <Tooltip
+                    title="Step to run next flowchart element"
+                    placement="top"
+                  >
+                    <IconButton
+                      type="button"
+                      sx={{ p: "10px", marginLeft: "5px" }}
+                      aria-label="Step Next"
+                      onClick={runNextLine}
+                      disabled={
+                        isRunning ||
+                        isAwaitingInput ||
+                        textAreaValue === "Running Flow..."
+                      }
+                    >
+                      <Redo />
+                    </IconButton>
+                </Tooltip>
+                */}{" "}
+                <Tooltip title="Stop execution" placement="top">
+                  <IconButton
+                    type="button"
+                    sx={{ p: "10px", marginLeft: "5px" }}
+                    aria-label="Step Next"
+                    onClick={() => stopExecution()}
+                    disabled={!isRunning}
+                  >
+                    <Stop />
+                  </IconButton>
+                </Tooltip>
+              </div>
+              <Divider />
+              {runOutputErr ? (
+                <TextareaAutosize
+                  id="run-flow-err-output"
+                  maxRows={15}
+                  className="output nodrag"
+                  value={runOutputErr}
+                  disabled={true}
+                  style={{ resize: "none", color: "red" }}
+                  placeholder="Output Here"
+                />
+              ) : (
+                <TextareaAutosize
+                  id="run-flow-output"
+                  maxRows={15}
+                  className="output nodrag"
+                  value={textAreaValue}
+                  disabled={true}
+                  style={{ resize: "none" }}
+                  placeholder="Output Here"
+                />
+              )}
+              {isAwaitingInput && (
+                <div>
+                  <div
+                    style={{ fontWeight: 500, width: "400px", padding: "10px" }}
+                  >
+                    {prompt}
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <TextareaAutosize
+                      id="run-flow-input"
+                      className="input-textbox nodrag"
+                      maxRows={1}
+                      value={inputValue}
+                      style={{
+                        resize: "none",
+                        width: "400px",
+                        marginRight: "10px",
+                      }}
+                      onKeyDown={(e) => e.key === "Enter" && sendInput()}
+                      onChange={(evt: React.ChangeEvent<HTMLTextAreaElement>) =>
+                        onChangeInput(evt.target.value)
+                      }
+                      placeholder="Input Here"
+                    />
+                    <IconButton
+                      type="button"
+                      sx={{ p: "20px" }}
+                      onClick={(
+                        e: React.MouseEvent<HTMLButtonElement, MouseEvent>
+                      ) => {
+                        e.preventDefault();
+                        sendInput();
+                      }}
+                      aria-label="Send"
+                    >
+                      <Send />
+                    </IconButton>
+                  </div>
+                </div>
+              )}
+            </Root>
+          ) : (
+            <Root>Python is not ready yet</Root>
+          )}
         </motion.div>
       )}
     </AnimatePresence>
