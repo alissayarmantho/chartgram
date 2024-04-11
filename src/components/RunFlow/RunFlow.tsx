@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Divider from "@mui/material/Divider";
 import { styled } from "@mui/material/styles";
 import { TextareaAutosize } from "@mui/base/TextareaAutosize";
-import { Redo, Send, SkipNext, Stop } from "@mui/icons-material";
+import { Autorenew, Redo, Send, SkipNext, Stop } from "@mui/icons-material";
 import Tooltip from "@mui/material/Tooltip";
 
 const Root = styled("div")(({ theme }) => ({
@@ -25,9 +25,9 @@ const RunFlow = ({
   onChangeInput,
   inputValue,
   sendInput,
-  runFlow,
   runNextLine,
   stopExecution,
+  isRunStepper,
   isRunning,
   isReady,
   runOutputErr,
@@ -62,9 +62,15 @@ const RunFlow = ({
           </IconButton>
           {isReady ? (
             <Root>
-              <div style={{ display: "flex", alignItems: "center" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  height: "30px",
+                }}
+              >
                 Run Flow
-                <Tooltip title="Run flow to the end" placement="top">
+                {/*<Tooltip title="Run flow to the end" placement="top">
                   <IconButton
                     size="large"
                     type="button"
@@ -80,16 +86,18 @@ const RunFlow = ({
                     <SkipNext />
                   </IconButton>
                 </Tooltip>
+                  */}
                 {/*
                 TODO: Implement step next, currently it is not quite possible to do it with react-py the python runner im using
                 since it has a repl functionality, but like, I cannot step into the while loop step by step which is what is needed
                 probably will have to think more about how to actually implement it
+                */}
+                {isRunStepper && (
                   <Tooltip
                     title="Step to run next flowchart element"
                     placement="top"
                   >
                     <IconButton
-                      size="large"
                       type="button"
                       sx={{ p: "10px", marginLeft: "5px" }}
                       aria-label="Step Next"
@@ -97,13 +105,13 @@ const RunFlow = ({
                       disabled={
                         isRunning ||
                         isAwaitingInput ||
-                        textAreaValue === "Running Flow..."
+                        runOutput === "Running Flow..."
                       }
                     >
                       <Redo />
                     </IconButton>
-                </Tooltip>
-                */}{" "}
+                  </Tooltip>
+                )}
                 <Tooltip title="Stop execution" placement="top">
                   <IconButton
                     size="large"
@@ -181,7 +189,7 @@ const RunFlow = ({
                       />
                       <IconButton
                         type="button"
-                        sx={{ p: "20px" }}
+                        sx={{ p: "20px", color: "#0056b3" }}
                         onClick={(
                           e: React.MouseEvent<HTMLButtonElement, MouseEvent>
                         ) => {
@@ -198,7 +206,7 @@ const RunFlow = ({
               </div>
             </Root>
           ) : (
-            <Root>Python is not ready yet</Root>
+            <Root>Python engine is not ready yet</Root>
           )}
         </motion.div>
       )}

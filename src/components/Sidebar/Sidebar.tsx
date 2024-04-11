@@ -17,6 +17,7 @@ const Sidebar = ({ nodes, setNodes }: any) => {
 
   return (
     <aside
+      className="sidebar"
       style={{
         background: "#d2e0ff",
         display: "flex",
