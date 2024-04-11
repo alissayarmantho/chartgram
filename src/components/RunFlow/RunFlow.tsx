@@ -27,6 +27,7 @@ const RunFlow = ({
   sendInput,
   runNextLine,
   stopExecution,
+  isRunStepper,
   isRunning,
   isReady,
   runOutputErr,
@@ -61,7 +62,13 @@ const RunFlow = ({
           </IconButton>
           {isReady ? (
             <Root>
-              <div style={{ display: "flex", alignItems: "center" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  height: "30px",
+                }}
+              >
                 Run Flow
                 {/*<Tooltip title="Run flow to the end" placement="top">
                   <IconButton
@@ -84,12 +91,13 @@ const RunFlow = ({
                 TODO: Implement step next, currently it is not quite possible to do it with react-py the python runner im using
                 since it has a repl functionality, but like, I cannot step into the while loop step by step which is what is needed
                 probably will have to think more about how to actually implement it
+                */}
+                {isRunStepper && (
                   <Tooltip
                     title="Step to run next flowchart element"
                     placement="top"
                   >
                     <IconButton
-                      size="large"
                       type="button"
                       sx={{ p: "10px", marginLeft: "5px" }}
                       aria-label="Step Next"
@@ -97,13 +105,13 @@ const RunFlow = ({
                       disabled={
                         isRunning ||
                         isAwaitingInput ||
-                        textAreaValue === "Running Flow..."
+                        runOutput === "Running Flow..."
                       }
                     >
                       <Redo />
                     </IconButton>
-                </Tooltip>
-                */}
+                  </Tooltip>
+                )}
                 <Tooltip title="Stop execution" placement="top">
                   <IconButton
                     size="large"
@@ -114,17 +122,6 @@ const RunFlow = ({
                     disabled={!isRunning}
                   >
                     <Stop />
-                  </IconButton>
-                </Tooltip>{" "}
-                <Tooltip title="Refresh python engine" placement="top">
-                  <IconButton
-                    size="large"
-                    type="button"
-                    sx={{ p: "10px", marginLeft: "5px", color: "#0056b3" }}
-                    aria-label="Refresh Python Engine"
-                    onClick={() => stopExecution()}
-                  >
-                    <Autorenew />
                   </IconButton>
                 </Tooltip>
               </div>
@@ -209,7 +206,7 @@ const RunFlow = ({
               </div>
             </Root>
           ) : (
-            <Root>Python is not ready yet</Root>
+            <Root>Python engine is not ready yet</Root>
           )}
         </motion.div>
       )}

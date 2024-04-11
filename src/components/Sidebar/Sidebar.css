@@ -5,6 +5,16 @@
   height: 100%;
 }
 
+.sidebar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+  overflow: auto;
+}
+
+.sidebar::-webkit-scrollbar {
+  display: none;
+}
+
 .dndflow aside {
   border-right: 1px solid #eee;
   padding: 15px 10px;

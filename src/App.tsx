@@ -35,7 +35,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
-import { PlayArrow, Update } from "@mui/icons-material";
+import { Autorenew, PlayArrow, Refresh, Update } from "@mui/icons-material";
 import { Tooltip } from "@mui/material";
 import RunFlow from "./components/RunFlow/RunFlow";
 import { cleanPython, Python3Parser } from "dt-python-parser";
@@ -136,6 +136,7 @@ function App() {
   const [openCodeDialog, setOpenCodeDialog] = React.useState(false);
   const [pythonCode, setPythonCode] = React.useState("");
   const [openRunFlow, setOpenRunFlow] = React.useState(false);
+  const [isRunStepper, setIsRunStepper] = React.useState(false);
   const [pythonCodeExecutionTimeout, setPythonCodeExecutionTimeout] =
     useState<any>(null);
   const {
@@ -203,17 +204,26 @@ function App() {
   };
 
   const runNextLine = () => {
+    showAlertStatus("info", "Sorry, this feature is not yet implemented :(");
     return;
   };
 
   const onOpenRunFlow = () => {
     setOpenRunFlow(true);
+    setIsRunStepper(false);
     runFlow();
+  };
+
+  const onOpenRunFlowStepper = () => {
+    setOpenRunFlow(true);
+    setIsRunStepper(true);
   };
 
   const onCloseRunFlow = () => {
     setOpenRunFlow(false);
+    setIsRunStepper(false);
   };
+
   const onOpenCodeDialog = (convertToPython: boolean) => {
     if (convertToPython) {
       let code = convertFlowToCode();
@@ -1127,6 +1137,7 @@ function App() {
             sendInput(runInput);
             setRunInput("");
           }}
+          isRunStepper={isRunStepper}
           isRunning={isRunning}
           runOutputErr={runOutputErr}
           runNextLine={runNextLine}
@@ -1158,36 +1169,99 @@ function App() {
             {alertStatusMessage}
           </Alert>
         </Snackbar>
-        <Button
+        <div
           style={{
-            backgroundColor:
-              !isReady || isRunning || runOutput === "Running Flow..."
-                ? "#d2e0ff"
-                : "#0056b3",
-            borderRadius: "20px",
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "right",
             position: "absolute",
             right: 280,
-            zIndex: 5,
             top: 8,
-            fontWeight:
-              !isReady || isRunning || runOutput === "Running Flow..."
-                ? "normal"
-                : "bold",
-            color:
-              !isReady || isRunning || runOutput === "Running Flow..."
-                ? "grey"
-                : "white",
-            padding: "18px 25px",
           }}
-          disabled={!isReady || isRunning || runOutput === "Running Flow..."}
-          onClick={onOpenRunFlow}
-          variant="contained"
-          endIcon={<PlayArrow />}
         >
-          {!isReady || isRunning || runOutput === "Running Flow..."
-            ? "Working on it..."
-            : "Run Flow"}
-        </Button>
+          <Tooltip title="Do refresh the engine if your program is stuck">
+            <Button
+              style={{
+                borderRadius: "20px",
+                zIndex: 5,
+                backgroundColor: "white",
+                borderWidth: "initial",
+                fontWeight: "bold",
+                color: "black",
+                padding: "18px 25px",
+                marginLeft: "20px",
+              }}
+              onClick={() => {
+                interruptExecution();
+                if (pythonCodeExecutionTimeout) {
+                  clearTimeout(pythonCodeExecutionTimeout);
+                }
+              }}
+              variant="outlined"
+              endIcon={<Autorenew />}
+            >
+              Refresh Engine
+            </Button>
+          </Tooltip>
+          <Button
+            style={{
+              backgroundColor:
+                !isReady || isRunning || runOutput === "Running Flow..."
+                  ? "#d2e0ff"
+                  : "#79a1f5",
+              borderRadius: "20px",
+              zIndex: 5,
+              fontWeight:
+                !isReady || isRunning || runOutput === "Running Flow..."
+                  ? "normal"
+                  : "bold",
+              color:
+                !isReady || isRunning || runOutput === "Running Flow..."
+                  ? "grey"
+                  : "white",
+              padding: "18px 25px",
+              marginLeft: "20px",
+            }}
+            onClick={() => {
+              onOpenRunFlowStepper();
+            }}
+            disabled={!isReady || isRunning || runOutput === "Running Flow..."}
+            variant="contained"
+            endIcon={<Refresh />}
+          >
+            {!isReady || isRunning || runOutput === "Running Flow..."
+              ? "Engine is working on it..."
+              : "Run Flow Stepper"}
+          </Button>
+          <Button
+            style={{
+              backgroundColor:
+                !isReady || isRunning || runOutput === "Running Flow..."
+                  ? "#d2e0ff"
+                  : "#0056b3",
+              borderRadius: "20px",
+              zIndex: 5,
+              marginLeft: "20px",
+              fontWeight:
+                !isReady || isRunning || runOutput === "Running Flow..."
+                  ? "normal"
+                  : "bold",
+              color:
+                !isReady || isRunning || runOutput === "Running Flow..."
+                  ? "grey"
+                  : "white",
+              padding: "18px 25px",
+            }}
+            disabled={!isReady || isRunning || runOutput === "Running Flow..."}
+            onClick={onOpenRunFlow}
+            variant="contained"
+            endIcon={<PlayArrow />}
+          >
+            {!isReady || isRunning || runOutput === "Running Flow..."
+              ? "Engine is working on it..."
+              : "Run Flow"}
+          </Button>
+        </div>
         <BootstrapDialog
           fullWidth
           maxWidth="xl"
