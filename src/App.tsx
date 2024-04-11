@@ -35,7 +35,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
-import { Autorenew, PlayArrow, Refresh, Update } from "@mui/icons-material";
+import { Autorenew, PlayArrow, Redo, Update } from "@mui/icons-material";
 import { Tooltip } from "@mui/material";
 import RunFlow from "./components/RunFlow/RunFlow";
 import { cleanPython, Python3Parser } from "dt-python-parser";
@@ -1227,7 +1227,7 @@ function App() {
             }}
             disabled={!isReady || isRunning || runOutput === "Running Flow..."}
             variant="contained"
-            endIcon={<Refresh />}
+            endIcon={<Redo />}
           >
             {!isReady || isRunning || runOutput === "Running Flow..."
               ? "Engine is working on it..."
