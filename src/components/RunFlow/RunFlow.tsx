@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Divider from "@mui/material/Divider";
 import { styled } from "@mui/material/styles";
 import { TextareaAutosize } from "@mui/base/TextareaAutosize";
-import { Redo, Send, SkipNext, Stop } from "@mui/icons-material";
+import { Autorenew, Redo, Send, SkipNext, Stop } from "@mui/icons-material";
 import Tooltip from "@mui/material/Tooltip";
 
 const Root = styled("div")(({ theme }) => ({
@@ -25,7 +25,6 @@ const RunFlow = ({
   onChangeInput,
   inputValue,
   sendInput,
-  runFlow,
   runNextLine,
   stopExecution,
   isRunning,
@@ -64,7 +63,7 @@ const RunFlow = ({
             <Root>
               <div style={{ display: "flex", alignItems: "center" }}>
                 Run Flow
-                <Tooltip title="Run flow to the end" placement="top">
+                {/*<Tooltip title="Run flow to the end" placement="top">
                   <IconButton
                     size="large"
                     type="button"
@@ -80,6 +79,7 @@ const RunFlow = ({
                     <SkipNext />
                   </IconButton>
                 </Tooltip>
+                  */}
                 {/*
                 TODO: Implement step next, currently it is not quite possible to do it with react-py the python runner im using
                 since it has a repl functionality, but like, I cannot step into the while loop step by step which is what is needed
@@ -103,7 +103,7 @@ const RunFlow = ({
                       <Redo />
                     </IconButton>
                 </Tooltip>
-                */}{" "}
+                */}
                 <Tooltip title="Stop execution" placement="top">
                   <IconButton
                     size="large"
@@ -114,6 +114,17 @@ const RunFlow = ({
                     disabled={!isRunning}
                   >
                     <Stop />
+                  </IconButton>
+                </Tooltip>{" "}
+                <Tooltip title="Refresh python engine" placement="top">
+                  <IconButton
+                    size="large"
+                    type="button"
+                    sx={{ p: "10px", marginLeft: "5px", color: "#0056b3" }}
+                    aria-label="Refresh Python Engine"
+                    onClick={() => stopExecution()}
+                  >
+                    <Autorenew />
                   </IconButton>
                 </Tooltip>
               </div>
@@ -181,7 +192,7 @@ const RunFlow = ({
                       />
                       <IconButton
                         type="button"
-                        sx={{ p: "20px" }}
+                        sx={{ p: "20px", color: "#0056b3" }}
                         onClick={(
                           e: React.MouseEvent<HTMLButtonElement, MouseEvent>
                         ) => {

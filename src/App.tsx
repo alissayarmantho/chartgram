@@ -208,6 +208,7 @@ function App() {
 
   const onOpenRunFlow = () => {
     setOpenRunFlow(true);
+    runFlow();
   };
 
   const onCloseRunFlow = () => {
@@ -1126,7 +1127,6 @@ function App() {
             sendInput(runInput);
             setRunInput("");
           }}
-          runFlow={runFlow}
           isRunning={isRunning}
           runOutputErr={runOutputErr}
           runNextLine={runNextLine}
@@ -1160,22 +1160,33 @@ function App() {
         </Snackbar>
         <Button
           style={{
-            backgroundColor: openRunFlow ? "#d2e0ff" : "#0056b3",
+            backgroundColor:
+              !isReady || isRunning || runOutput === "Running Flow..."
+                ? "#d2e0ff"
+                : "#0056b3",
             borderRadius: "20px",
             position: "absolute",
             right: 280,
             zIndex: 5,
             top: 8,
-            fontWeight: openRunFlow ? "normal" : "bold",
-            color: openRunFlow ? "grey" : "white",
+            fontWeight:
+              !isReady || isRunning || runOutput === "Running Flow..."
+                ? "normal"
+                : "bold",
+            color:
+              !isReady || isRunning || runOutput === "Running Flow..."
+                ? "grey"
+                : "white",
             padding: "18px 25px",
           }}
-          disabled={openRunFlow}
+          disabled={!isReady || isRunning || runOutput === "Running Flow..."}
           onClick={onOpenRunFlow}
           variant="contained"
           endIcon={<PlayArrow />}
         >
-          {openRunFlow ? "Running..." : "Run Flow"}
+          {!isReady || isRunning || runOutput === "Running Flow..."
+            ? "Working on it..."
+            : "Run Flow"}
         </Button>
         <BootstrapDialog
           fullWidth
