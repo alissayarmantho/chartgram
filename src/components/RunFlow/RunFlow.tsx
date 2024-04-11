@@ -98,7 +98,6 @@ const RunFlow = ({
                     placement="top"
                   >
                     <IconButton
-                      size="large"
                       type="button"
                       sx={{ p: "10px", marginLeft: "5px" }}
                       aria-label="Step Next"
@@ -123,17 +122,6 @@ const RunFlow = ({
                     disabled={!isRunning}
                   >
                     <Stop />
-                  </IconButton>
-                </Tooltip>{" "}
-                <Tooltip title="Refresh python engine" placement="top">
-                  <IconButton
-                    size="large"
-                    type="button"
-                    sx={{ p: "10px", marginLeft: "5px", color: "#0056b3" }}
-                    aria-label="Refresh Python Engine"
-                    onClick={() => stopExecution()}
-                  >
-                    <Autorenew />
                   </IconButton>
                 </Tooltip>
               </div>
