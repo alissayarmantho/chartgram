@@ -99,7 +99,7 @@ const RunFlow = ({
                   >
                     <IconButton
                       type="button"
-                      sx={{ p: "10px", marginLeft: "5px" }}
+                      sx={{ p: "10px", marginLeft: "5px", color: "#0056b3" }}
                       aria-label="Step Next"
                       onClick={runNextLine}
                       disabled={
@@ -117,7 +117,7 @@ const RunFlow = ({
                     size="large"
                     type="button"
                     sx={{ p: "10px", marginLeft: "5px", color: "red" }}
-                    aria-label="Step Next"
+                    aria-label="Stop Execution"
                     onClick={() => stopExecution()}
                     disabled={!isRunning}
                   >
