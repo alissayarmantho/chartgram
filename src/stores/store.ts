@@ -16,6 +16,7 @@ import {
   IsValidConnection,
   updateEdge,
   OnEdgeUpdateFunc,
+  NodeRemoveChange,
 } from "reactflow";
 
 export type NodeData = {
@@ -560,6 +561,25 @@ const useStore = createWithEqualityFn<RFState>(
     },
     lastNodeId: 0,
     onNodesChange: (changes: NodeChange[]) => {
+      let filteredChanges = changes
+        .filter((change) => change.type === "remove")
+        .filter((change) => {
+          let castedChange = change as NodeRemoveChange;
+          if (
+            castedChange.id === "main-start" ||
+            castedChange.id === "main-end"
+          ) {
+            get().onToastOpen(
+              "Main Start and Main End nodes cannot be deleted",
+              "warning"
+            );
+            return true;
+          }
+          return false;
+        });
+      if (filteredChanges.length > 0) {
+        return;
+      }
       set({
         nodes: applyNodeChanges(changes, get().nodes),
       });

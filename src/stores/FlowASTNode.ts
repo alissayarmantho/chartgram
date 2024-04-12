@@ -395,9 +395,7 @@ export class FunctionFlowNode extends FlowASTNode {
     const args = this.argumentExpressions.join(", ");
     let functionHeader = `${indent}def ${this.functionName}(${args}):\n`;
     let functionBody =
-      this.body.statements.length > 0
-        ? this.body.toCode()
-        : `${" ".repeat((this.nestingLevel + 1) * 4)}pass\n`;
+      this.body.statements.length > 0 ? this.body.toCode() : "";
     let functionReturn = `${" ".repeat((this.nestingLevel + 1) * 4)}return ${
       this.returnExpression
     }\n`;

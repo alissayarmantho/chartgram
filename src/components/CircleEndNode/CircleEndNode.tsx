@@ -14,6 +14,7 @@ export const CircleEndNode: React.FC<NodeProps<NodeData>> = ({
   const onConnect = useStore((state) => state.onConnect);
   const isValidConnection = useStore((state) => state.isValidConnection);
   // const onAdd = useStore((state) => state.addNode);
+
   return (
     <div
       className="circle-end-node"
