@@ -97,7 +97,7 @@ function bfsIfElse(
     },
   ];
 
-  let visited = new Set<NodeIDHandle>();
+  let visited = new Set<string>();
 
   let endNode: string = "";
 
@@ -105,10 +105,10 @@ function bfsIfElse(
     let { nodeId, handle, depth } = queue.shift() ?? {};
     if (!nodeId || !handle || depth === undefined || depth === null) break;
 
-    if (visited.has({ nodeId: nodeId, handle: handle })) continue;
+    if (visited.has(JSON.stringify({ nodeId: nodeId, handle: handle })))
+      continue;
 
-    // This might make a node be visited twice if they got multiple source handles, but it should be fine
-    visited.add({ nodeId: nodeId, handle: handle });
+    visited.add(JSON.stringify({ nodeId: nodeId, handle: handle }));
 
     // Add node and depth info
     let currentNode = nodes.find((e) => e.id === nodeId);
@@ -305,12 +305,12 @@ function validateIfElseNode(
   const ifBodyReachable = bfsIfElse(nodes, edges, ifElseNodeId, "if");
   const elseBodyReachable = bfsIfElse(nodes, edges, ifElseNodeId, "else");
   const ifBodyNodeIds = ifBodyReachable.visited
-    .map((item) => item.nodeId)
+    .map((item) => JSON.parse(item).nodeId)
     .filter(
       (item) => !(ifElseNodeId === item) && !(ifBodyReachable.endNode === item)
     );
   const elseBodyNodeIds = elseBodyReachable.visited
-    .map((item) => item.nodeId)
+    .map((item) => JSON.parse(item).nodeId)
     .filter(
       (item) =>
         !(ifElseNodeId === item) && !(elseBodyReachable.endNode === item)
@@ -611,7 +611,7 @@ const useStore = createWithEqualityFn<RFState>(
           // Allow loop-body to loop-end connection for loop nodes
           return true;
         } else {
-          get().onToastOpen("A node cannot connect to itself!", "error");
+          get().onToastOpen("A node cannot connect to itself", "error");
           return false;
         }
       }
@@ -625,7 +625,7 @@ const useStore = createWithEqualityFn<RFState>(
       );
 
       if (isSourceHandleConnected || isTargetHandleConnected) {
-        get().onToastOpen("This handle is already connected!", "error");
+        get().onToastOpen("This handle is already connected", "error");
         return false;
       }
 

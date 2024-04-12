@@ -1,6 +1,10 @@
 import jsep from "jsep";
 import object from "@jsep-plugin/object";
-import { isValidArgument, isValidVariableFunctionName } from "./utils";
+import {
+  isValidArgument,
+  isValidVariableAssignment,
+  isValidVariableFunctionName,
+} from "./utils";
 jsep.plugins.register(object);
 
 export enum LoopType {
@@ -78,9 +82,9 @@ export class AssignmentFlowNode extends FlowASTNode {
     this.validateExpression();
   }
   validateExpression(): void {
-    if (!isValidVariableFunctionName(this.varName)) {
+    if (!isValidVariableAssignment(this.varName)) {
       throw new Error(
-        `Invalid variable name '${this.varName}'. Variable names must be alphanumeric_ and does not start with numbers`
+        `Invalid variable name '${this.varName}'. Variable names must be alphanumeric_ and does not start with numbers / is an index or key list and dict access`
       );
     }
     if (this.expression === "") {
@@ -284,7 +288,8 @@ export class MiscellaneousStatementNode extends StatementFlowNode {
     const listInsertAtPattern = /^[a-zA-Z0-9_]+\.insert\(\d+,[^)]+\)$/;
     const listRemovePattern = /^[a-zA-Z0-9_]+\.remove\([^)]+\)$/;
     const listRemoveAtPattern = /^[a-zA-Z0-9_]+\.pop\(\d+\)$/;
-    const accessPattern = /^[a-zA-Z0-9_]+\[[^\]]+\]$/;
+    const accessPattern =
+      /^[a-zA-Z_][a-zA-Z0-9_]*(\[\d+\]|\[[a-zA-Z_][a-zA-Z0-9_]*\]|\["[^"]*"\]|\['[^']*'\])+$/;
     const dictInsertPattern = /^[a-zA-Z0-9_]+\[[^\]]+\] = .+$/;
     const dictRemovePattern = /^del [a-zA-Z0-9_]+\[[^\]]+\]$/;
     const functionCallPattern = /^(\w+)\((.*?)\)$/;

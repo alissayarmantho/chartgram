@@ -12,6 +12,14 @@ export function isValidVariableFunctionName(part: string) {
   return regex.test(part);
 }
 
+export function isValidVariableAssignment(part: string) {
+  // This regex matches simple variable names and indexed access for lists and dictionaries
+  const regex =
+    /^[a-zA-Z_][a-zA-Z0-9_]*(\[\d+\]|\[[a-zA-Z_][a-zA-Z0-9_]*\]|\["[^"]*"\]|\['[^']*'\])*$/;
+
+  return regex.test(part);
+}
+
 export function isValidArgument(arg: string) {
   // Regex to match variable/function names, strings (single or double quoted), and numbers (integer or decimal)
   // Not allowing ["a", "!"] or {2: 3} or any other objects. If they want to pass list / dict need to declare first
