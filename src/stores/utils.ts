@@ -28,3 +28,28 @@ export function isValidArgument(arg: string) {
 
   return regex.test(arg);
 }
+
+export function isValidMiscStatement(part: string) {
+  // Patterns to match the list and dictionary operations
+  const listInsertPattern = /^[a-zA-Z0-9_]+\.append\([^)]+\)$/;
+  const listInsertAtPattern = /^[a-zA-Z0-9_]+\.insert\(\d+,[^)]+\)$/;
+  const listRemovePattern = /^[a-zA-Z0-9_]+\.remove\([^)]+\)$/;
+  const listRemoveAtPattern = /^[a-zA-Z0-9_]+\.pop\(\d+\)$/;
+  const accessPattern =
+    /^[a-zA-Z_][a-zA-Z0-9_]*(\[\d+\]|\[[a-zA-Z_][a-zA-Z0-9_]*\]|\["[^"]*"\]|\['[^']*'\])+$/;
+  const dictInsertPattern = /^[a-zA-Z0-9_]+\[[^\]]+\] = .+$/;
+  const dictRemovePattern = /^del [a-zA-Z0-9_]+\[[^\]]+\]$/;
+  const functionCallPattern = /^(\w+)\((.*?)\)$/;
+
+  // Test the statement against all patterns
+  return (
+    listInsertPattern.test(part) ||
+    listInsertAtPattern.test(part) ||
+    listRemovePattern.test(part) ||
+    listRemoveAtPattern.test(part) ||
+    dictInsertPattern.test(part) ||
+    dictRemovePattern.test(part) ||
+    accessPattern.test(part) ||
+    functionCallPattern.test(part)
+  );
+}

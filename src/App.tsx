@@ -38,8 +38,12 @@ import CloseIcon from "@mui/icons-material/Close";
 import { Autorenew, PlayArrow, Redo, Update } from "@mui/icons-material";
 import { Tooltip } from "@mui/material";
 import RunFlow from "./components/RunFlow/RunFlow";
-import { cleanPython, Python3Parser } from "dt-python-parser";
-import { isValidPythonFunctionDefinition } from "./stores/utils";
+import { cleanPython, Python3Parser, Python3Visitor } from "dt-python-parser";
+import {
+  isValidMiscStatement,
+  isValidPythonFunctionDefinition,
+  isValidVariableFunctionName,
+} from "./stores/utils";
 import {
   AssignmentFlowNode,
   FlowASTNode,
@@ -60,6 +64,7 @@ import "ace-builds/src-noconflict/ext-language_tools";
 import "ace-builds/src-noconflict/snippets/python";
 import "ace-builds/src-min-noconflict/ext-searchbox";
 import { stat } from "fs/promises";
+import { getLeadingCommentRanges } from "typescript";
 
 const rfStyle = {
   backgroundColor: "#B8CEFF",
@@ -419,14 +424,14 @@ function App() {
   function createNode(
     type: string,
     label: string,
-    lastNodeId: number,
+    nodeId: string,
     xPosition: number,
     yPosition: number,
     additionalData = {}
   ): Node<NodeData> {
     // Create the new node object based on the type and provided data
     const newNode = {
-      id: lastNodeId.toString(),
+      id: nodeId,
       type: type,
       position: { x: xPosition, y: yPosition },
       data: { label, hasError: false, ...additionalData },
@@ -458,10 +463,13 @@ function App() {
     const code = cleanPython(pythonCode);
     const parser = new Python3Parser();
     const errors = parser.validate(code);
+    /*
     if (errors.length > 0) {
+      console.log(errors);
       showAlertStatus("error", "Syntax errors found. Cannot convert to flow");
       return;
     }
+    */
 
     if (code === "") {
       // Starter pack :)
@@ -486,32 +494,220 @@ function App() {
     }
     const ast = parser.parse(code);
     console.log(ast);
+    if (ast.exception !== null) {
+      showAlertStatus("error", "Syntax errors found. Cannot convert to flow");
+      return;
+    }
     // TODO: Actually use the visitor pattern given by this parser to convert the code to flow
+
+    /*
+    class CustomPythonVisitor extends Python3Visitor {
+      currentNode: FlowASTNode;
+
+      constructor() {
+        super();
+        this.currentNode = new StatementListFlowNode(0, "root"); // Root node with nesting level 0
+      }
+      visitSuite(ctx: any) {
+        // Create a new node for the suite to represent a block of statements
+        const suiteNode = new StatementListFlowNode(
+          this.currentNode.nestingLevel + 1,
+          "suiteNode"
+        );
+
+        // Temporarily set the current node to this new suite node to add statements to it
+        const previousNode = this.currentNode;
+        this.currentNode = suiteNode;
+
+        // Visit all statements in the suite
+        ctx.statement().forEach((statement: any) => {
+          this.visit(statement);
+        });
+
+        // After processing all statements, revert the current node to the previous node
+        this.currentNode = previousNode;
+
+        // Add the fully built suite node to the current node's statements
+        if (this.currentNode instanceof StatementListFlowNode) {
+          this.currentNode.addStatement(suiteNode);
+        } else {
+          console.error(
+            "Current node is not a StatementListFlowNode, can't add suiteNode"
+          );
+        }
+      }
+      visitFunction_def(ctx: any) {
+        const functionName = ctx.NAME().getText();
+        const bodyNode = new StatementListFlowNode(
+          this.currentNode.nestingLevel + 1,
+          "functionBodyNode"
+        );
+        const functionNode = new FunctionFlowNode(
+          this.currentNode.nestingLevel,
+          "functionNode",
+          functionName,
+          bodyNode,
+          [],
+          ""
+        ); // Simplified setup
+
+        (this.currentNode as StatementListFlowNode).addStatement(functionNode);
+        const previousNode = this.currentNode;
+        this.currentNode = bodyNode; // Set the current node to the body of the function
+
+        // Visit all statements in the function body
+        this.visit(ctx.suite());
+
+        // After visiting the body, reset the current node to the previous context
+        this.currentNode = previousNode;
+      }
+
+      visitIf_stmt(ctx: any) {
+        const condition = ctx.test().getText();
+        const ifNode = new IfFlowNode(
+          this.currentNode.nestingLevel + 1,
+          "ifNode",
+          condition
+        );
+
+        // Process the 'then' suite
+        (this.currentNode as StatementListFlowNode).addStatement(ifNode);
+        const previousNode = this.currentNode;
+        this.currentNode = ifNode;
+        this.visitSuite(ctx.suite());
+        this.currentNode = previousNode;
+
+        // Check if there's an 'else' suite
+        if (ctx.else_part()) {
+          this.visitSuite(ctx.else_part().suite());
+        }
+      }
+
+      visitWhile_stmt(ctx: any) {
+        const condition = ctx.expression().getText(); // Simplified; might require a proper parsing
+        const whileNode = new LoopFlowNode(
+          this.currentNode.nestingLevel + 1,
+          "whileNode",
+          LoopType.While,
+          condition,
+          new StatementListFlowNode(
+            this.currentNode.nestingLevel + 2,
+            "whileBody"
+          )
+        );
+
+        (this.currentNode as StatementListFlowNode).addStatement(whileNode); // Add the while node to the current block of statements
+
+        // Set the new context for the body of the while loop
+        const previousNode = this.currentNode;
+        this.currentNode = whileNode.getBody();
+
+        // Visit the statements inside the while loop
+        ctx.statement_list().forEach((statement: any) => {
+          this.visit(statement);
+        });
+
+        // Reset the context back to the previous node after finishing the loop body
+        this.currentNode = previousNode;
+      }
+
+      visitFor_stmt(ctx: any) {
+        // Assuming the 'for' statement structure is like 'for target in iter: suite'
+        const target = ctx.target().getText(); // This is a simplified assumption
+        const iter = ctx.iter().getText(); // You might need to visit these for complex expressions
+        const iteration = `${target} in ${iter}`;
+
+        const forNode = new LoopFlowNode(
+          this.currentNode.nestingLevel + 1,
+          "forNode",
+          LoopType.For,
+          iteration,
+          new StatementListFlowNode(
+            this.currentNode.nestingLevel + 2,
+            "forBody"
+          )
+        );
+
+        (this.currentNode as StatementListFlowNode).addStatement(forNode); // Add the for node to the current block of statements
+
+        // Set the new context for the body of the for loop
+        const previousNode = this.currentNode;
+        this.currentNode = forNode.getBody();
+
+        // Visit the statements inside the for loop
+        if (ctx.suite()) {
+          this.visit(ctx.suite());
+        }
+
+        // Reset the context back to the previous node after finishing the loop body
+        this.currentNode = previousNode;
+      }
+
+      visitExpr_stmt(ctx: any) {
+        // Simplified example for assignments
+        if (ctx.ASSIGN()) {
+          const varName = ctx.testlist(0).getText();
+          const expression = ctx.testlist(1).getText();
+          let assignNode = new AssignmentFlowNode(
+            0,
+            lastNodeId.toString(),
+            varName,
+            expression
+          );
+          lastNodeId++;
+          return assignNode;
+        }
+
+        // Check for print/input functions as IO operations
+        if (ctx.func_call().NAME().getText() === "print") {
+          const varName = ctx.func_call().arguments().getText();
+          let ioNode = new InputOutputFlowNode(
+            0,
+            "io_node",
+            IOType.Output,
+            varName
+          );
+          lastNodeId++;
+          return ioNode;
+        }
+
+        return null;
+      }
+
+      // Add other necessary visit methods...
+    }
+    const visitor = new CustomPythonVisitor();
+    visitor.visit(ast);
+    */
 
     let lastNodeId = 0; // Assuming "main-start" is ID 0 for simplicity
     let lastEdgeId = 0;
     let blockStack: any = [];
     let xPosition = 500;
     let yPosition = 100;
-    const yIncrement = 100;
+    const yIncrement = 300;
 
-    let convertedNodes: Node<NodeData>[] = [
-      createNode(
-        "circle_start",
-        "Main Start",
-        lastNodeId,
-        xPosition,
-        yPosition,
-        {
-          functionType: "start",
-        }
-      ),
-    ];
+    let convertedNodes: Node<NodeData>[] = [];
     let convertedEdges: Edge[] = [];
     const codeLines = code.trim().split("\n");
+    let hasAnyError: boolean = false;
+    let isFinalLine: boolean = false;
+    let isMainFunctionEnd: boolean = false;
 
-    codeLines.forEach((line: string, index: number) => {
+    codeLines.every((line: string, index: number) => {
+      if (isFinalLine) {
+        showAlertStatus(
+          "error",
+          "There cannot be more code after the main function end and main function is called. Cannot convert to flow"
+        );
+        hasAnyError = true;
+        return false;
+      }
+
       const trimmedLine = line.trim();
+      if (trimmedLine === "") {
+        return true;
+      }
       const matchRes = line.match(/^\s*/);
       const currentIndentation = matchRes ? matchRes[0].length : 0;
       const lastBlock =
@@ -535,22 +731,18 @@ function App() {
               endNodeLabel = "End Loop";
               endNodeData = { label: endNodeLabel };
               break;
-            case "def":
-              endNodeType = "circle_end";
-              endNodeLabel = "return";
-              endNodeData = { label: endNodeLabel, functionType: "end" };
-              break;
           }
           // Create the end node for the block
           if (endNodeType && endNodeLabel) {
             const endNode = createNode(
               endNodeType,
               endNodeLabel,
-              lastNodeId++,
+              lastNodeId.toString(),
               xPosition,
               yPosition,
               endNodeData
             );
+            lastNodeId++;
             convertedNodes.push(endNode);
 
             const newEdge = createEdge(
@@ -565,10 +757,17 @@ function App() {
         }
       }
       let type = "";
-
+      let id = "";
       let label = line;
       let additionalData = {};
       if (trimmedLine.startsWith("if")) {
+        showAlertStatus(
+          "error",
+          "Sorry! Conversion of if-else statements is not yet implemented :("
+        );
+        hasAnyError = true;
+        return false;
+        /*
         type = "diamond";
         label = trimmedLine.substring(3, line.length - 1); // Exclude "if:"
         blockStack.push({
@@ -576,7 +775,14 @@ function App() {
           indentation: currentIndentation,
           startNodeId: lastNodeId.toString(),
         });
+        */
       } else if (trimmedLine.startsWith("else")) {
+        showAlertStatus(
+          "error",
+          "Sorry! Conversion of if-else statements is not yet implemented :("
+        );
+        hasAnyError = true;
+        return false;
       } else if (trimmedLine.includes("=")) {
         const firstEqualIndex = line.indexOf("=");
         const varAssignment = line.substring(0, firstEqualIndex).trim();
@@ -590,10 +796,9 @@ function App() {
           ) {
             // I'm allowing and hardcoding the above :). TODO: Fix this
             showAlertStatus(
-              "error",
-              "Invalid input format. Chartgram currently does not support prompt text for input. Cannot convert to flow"
+              "warning",
+              "prompt text for input will be changed to a default prompt text. Chartgram currently does not support customised input prompt text"
             );
-            return;
           }
           label = varAssignment;
           additionalData = { inputType: "input" };
@@ -604,11 +809,24 @@ function App() {
       } else if (trimmedLine.startsWith("print")) {
         type = "parallelogram";
         label = trimmedLine.substring(6, line.length - 1).slice(0, -1); // Exclude "print()"
+        if (!isValidVariableFunctionName(label)) {
+          showAlertStatus("error", "print var name is invalid");
+          hasAnyError = true;
+          return false;
+        }
+
         additionalData = { inputType: "output" };
       } else if (
         trimmedLine.startsWith("for") ||
         trimmedLine.startsWith("while")
       ) {
+        showAlertStatus(
+          "error",
+          "Sorry! Conversion of loop statements is not yet implemented :("
+        );
+        hasAnyError = true;
+        return false;
+        /*
         type = "roundedrectangle";
         label = trimmedLine;
         blockStack.push({
@@ -616,83 +834,175 @@ function App() {
           indentation: currentIndentation,
           startNodeId: lastNodeId.toString(),
         });
+        */
       } else if (trimmedLine.startsWith("def")) {
-        let functionSplitted = trimmedLine.split(" ")[1];
+        let functionSplitted = trimmedLine.split(" ");
         if (functionSplitted.length !== 2) {
           showAlertStatus(
             "error",
             "def in python need to have at least a function name. Cannot convert to flow"
           );
-          return;
+          hasAnyError = true;
+          return false;
         }
         if (!isValidPythonFunctionDefinition(functionSplitted[1])) {
           showAlertStatus(
             "error",
             "Invalid function declaration format. Cannot convert to flow"
           );
-          return;
+          hasAnyError = true;
+          return false;
         }
-        type = "circle";
-        additionalData = { functionType: "start" };
-        label = functionSplitted[1].slice(0, -1);
-        blockStack.push({
-          type: "def",
-          indentation: currentIndentation,
-          startNodeId: lastNodeId.toString(),
-        });
+        if (functionSplitted[1].includes("main")) {
+          let possible_func_main = functionSplitted[1].slice(0, -1).trim();
+          if (possible_func_main !== "main()") {
+            showAlertStatus(
+              "error",
+              "main function should not have any arguments. Cannot convert to flow"
+            );
+            hasAnyError = true;
+            return false;
+          } else {
+            type = "circle_start";
+            additionalData = { functionType: "start" };
+            label = "Main Start";
+            id = "main-start";
+            blockStack.push({
+              type: "def",
+              indentation: currentIndentation,
+              startNodeId: "main-start",
+            });
+          }
+        } else {
+          console.log(trimmedLine);
+          type = "circle";
+          additionalData = { functionType: "start" };
+          label = functionSplitted[1].slice(0, -1);
+          blockStack.push({
+            type: "def",
+            indentation: currentIndentation,
+            startNodeId: lastNodeId.toString(),
+          });
+        }
+      } else if (trimmedLine.startsWith("return")) {
+        if (lastBlock && lastBlock.type === "def") {
+          if (lastBlock.startNodeId === "main-start") {
+            if (trimmedLine !== "return") {
+              showAlertStatus(
+                "error",
+                "main function should not have any return value. Cannot convert to flow"
+              );
+              hasAnyError = true;
+              return false;
+            }
+            type = "circle_end";
+            id = "main-end";
+            additionalData = { functionType: "end" };
+            label = "Main End";
+          } else {
+            type = "circle";
+            additionalData = { functionType: "end" };
+            let returnSplitted = trimmedLine.split(" ");
+            if (returnSplitted.length > 2) {
+              showAlertStatus(
+                "error",
+                "function cannot have more than one return value. Cannot convert to flow"
+              );
+              hasAnyError = true;
+              return false;
+            } else if (returnSplitted.length === 2) {
+              label = returnSplitted[1].trim();
+            } else {
+              label = "";
+            }
+          }
+          blockStack.pop();
+        } else {
+          showAlertStatus(
+            "error",
+            "return statement should only be in a function. Cannot convert to flow"
+          );
+          hasAnyError = true;
+          return false;
+        }
+      } else if (isValidMiscStatement(trimmedLine)) {
+        type = "rectangle";
+        label = trimmedLine;
       }
 
-      yPosition = yPosition + yIncrement;
+      /*
+      if (isMainFunctionEnd && trimmedLine !== "main()") {
+        console.log(trimmedLine);
+        showAlertStatus(
+          "error",
+          "cannot have any code besides main() after main function end. Cannot convert to flow"
+        );
+        hasAnyError = true;
+        return false;
+      }
+      */
+
+      if (trimmedLine !== "main()" && type === "") {
+        console.log(trimmedLine);
+        showAlertStatus(
+          "error",
+          "Unsupported python code. Cannot convert to flow"
+        );
+        hasAnyError = true;
+        return false;
+      } else if (trimmedLine === "main()") {
+        if (!isMainFunctionEnd) {
+          showAlertStatus(
+            "error",
+            "cannot call main() inside main function. Cannot convert to flow"
+          );
+          hasAnyError = true;
+          return false;
+        }
+        isFinalLine = true;
+        return true;
+      }
+
+      if (id === "") {
+        id = lastNodeId.toString();
+      }
       const newNode = createNode(
         type,
         label,
-        lastNodeId,
+        id,
         xPosition,
         yPosition,
         additionalData
       );
       convertedNodes.push(newNode);
       lastNodeId++;
+      yPosition = yPosition + yIncrement;
 
       if (index > 0) {
-        // Skip the first line as it connects to "main-start"
         const newEdge = createEdge(
-          convertedNodes[index].id,
-          convertedNodes[index + 1].id,
-          lastEdgeId
-        );
-        convertedEdges.push(newEdge);
-        lastEdgeId++;
-      } else if (index === 0) {
-        const newEdge = createEdge(
-          "main-start",
-          convertedNodes[index].id,
+          convertedNodes[convertedNodes.length - 2].id,
+          convertedNodes[convertedNodes.length - 1].id,
           lastEdgeId
         );
         convertedEdges.push(newEdge);
         lastEdgeId++;
       }
+
+      if (type === "circle_end") {
+        isMainFunctionEnd = true;
+      }
+      return true;
     });
 
-    // Connect the last code line node to "main-end"
-    if (convertedNodes.length > 1) {
-      const lastCodeNode = convertedNodes[convertedNodes.length - 1];
-      const mainEndNode = createNode(
-        "circle_end",
-        "Main End",
-        lastNodeId,
-        xPosition,
-        yPosition + yIncrement,
-        { functionType: "end" }
-      );
-      lastNodeId++;
-      convertedNodes.push(mainEndNode);
-      const newEdge = createEdge(lastCodeNode.id, mainEndNode.id, lastEdgeId);
-      lastEdgeId++;
-      convertedEdges.push(newEdge);
+    if (hasAnyError) {
+      return;
     }
 
     setAllNodesAndEdges(convertedNodes, convertedEdges);
+    showAlertStatus(
+      "success",
+      "Flow successfully converted from the python code"
+    );
   };
 
   function dfsMapEnclosures(
@@ -1340,11 +1650,7 @@ function App() {
             </Button>
             <Button
               onClick={() => {
-                // convertCodeToFlow();
-                showAlertStatus(
-                  "info",
-                  "Sorry! This feature is not yet implemented :("
-                );
+                convertCodeToFlow();
                 onCloseCodeDialog();
               }}
               variant="contained"
